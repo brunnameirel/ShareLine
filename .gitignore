@@ -2,3 +2,8 @@ node_modules/
 __pycache__/
 *.pyc
 .env
+*.env
+venv/
+.venv/
+node_modules/
+shareline.db

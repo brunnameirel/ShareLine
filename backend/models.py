@@ -13,7 +13,7 @@ class User(SQLModel, table=True):
     name: str
     password_hash: str
 
-    # Role flags — a user may hold one or both roles (SRS §2.1)
+    # Role flags — a user may hold one or both roles
     is_donor: bool = False
     is_requester: bool = False          
 
@@ -28,21 +28,21 @@ class Item(SQLModel, table=True):
     donor_id: int = Field(foreign_key="user.id", index=True)
 
     name: str
-    # SRS §2.6 categories: Clothing | Food | Bedding | Hygiene |
+    #categories: Clothing | Food | Bedding | Hygiene |
     #                       Textbooks | Electronics | Other
     category: str
     description: str
-    # SRS §2.2 — condition field required on listing form
+    # condition field required on listing form
     condition: str                      # e.g. "New", "Good", "Fair"
     quantity: int
-    # SRS §1.2 — campus locations across the Five College Consortium
+    # campus locations across the Five College Consortium
     location: str                       # campus name / pickup spot
 
-    # SRS §2.2 — one or more photos stored in object storage (Supabase Storage)
+    # one or more photos stored in object storage (Supabase Storage)
     # Store a comma-separated list of public URLs so we stay schema-simple
     photo_urls: Optional[str] = None    # e.g. "url1,url2"
 
-    # SRS §2.5 — Available | Completed
+    
     status: str = Field(default="Available")
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -58,7 +58,7 @@ class Request(SQLModel, table=True):
     item_id: int = Field(foreign_key="item.id", index=True)
 
     requested_quantity: int
-    # SRS §2.5 — status lifecycle
+    #status lifecycle
     status: str = Field(default="Pending")  # Pending | Approved | Rejected | Completed
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -73,7 +73,7 @@ class Message(SQLModel, table=True):
     request_id: int = Field(foreign_key="request.id", index=True)
     sender_id: int = Field(foreign_key="user.id")
 
-    # SRS §3.7 failure case — max 1 000 characters
+    #failure case — max 1 000 characters
     body: str = Field(max_length=1000)
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -87,7 +87,7 @@ class Notification(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id", index=True)
 
-    # Human-readable text shown in the notification bell
+    
     message: str
     # Link to the relevant resource, e.g. "/requests/42"
     link: Optional[str] = None

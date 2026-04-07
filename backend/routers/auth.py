@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from sqlmodel import Session, select
@@ -16,7 +16,7 @@ ALGORITHM = "HS256"
 security = HTTPBearer()
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-
+router = APIRouter(prefix="/auth", tags=["auth"])
 # Dependency: Get Current User
 
 def get_current_user(

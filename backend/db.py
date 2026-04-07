@@ -15,10 +15,8 @@ from sqlmodel import SQLModel, Session, create_engine
 #
 # ---------------------------------------------------------------------------
 DATABASE_URL: str = os.getenv(
-    "DATABASE_URL",
-    "postgresql+psycopg://postgres:[YOUR-PASSWORD]@db.rmgtzyzhfdqnlwxhoqdb.supabase.co:5432/postgres",
+    "DATABASE_URL"
 )
-
 engine = create_engine(
     DATABASE_URL,
     echo=os.getenv("SQL_ECHO", "false").lower() == "true",  # set SQL_ECHO=true to debug

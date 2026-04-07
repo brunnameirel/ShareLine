@@ -132,7 +132,7 @@ def _create_notification(
 def get_messages(
     request_id: UUID,
     current_user: User = Depends(get_current_user),
-    session: SessionDep = get_session, 
+    session: SessionDep = get_session
 ) -> List[Message]:
     _get_approved_request(request_id, current_user, session)
     

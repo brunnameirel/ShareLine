@@ -134,7 +134,7 @@ def mark_one_read(
 @router.patch("/read-all")
 def mark_all_read(
     current_user: User = Depends(get_current_user),
-    session: SessionDep = Depends(get_session),
+    session: SessionDep = get_session,
 ) -> dict:
     unread = session.exec(
         select(Notification)

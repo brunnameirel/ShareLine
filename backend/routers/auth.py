@@ -3,6 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from sqlmodel import Session, select
 from models import User
+from db import get_session
 from schemas import UserCreate, UserRead
 from db import get_session
 import os

@@ -4,6 +4,7 @@ import os
 
 from fastapi import Depends
 from sqlmodel import SQLModel, Session, create_engine
+from dotenv import load_dotenv  
 
 # ---------------------------------------------------------------------------
 # Database connection
@@ -14,18 +15,16 @@ from sqlmodel import SQLModel, Session, create_engine
 # or the "Transaction mode" URL (port 5432) if you add ?pgbouncer=true.
 #
 # ---------------------------------------------------------------------------
-DATABASE_URL: str = os.getenv(
-    "DATABASE_URL",
-    "postgresql+psycopg://postgres:[YOUR-PASSWORD]@db.rmgtzyzhfdqnlwxhoqdb.supabase.co:5432/postgres",
-)
+load_dotenv()
 
+
+DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(
     DATABASE_URL,
-    echo=os.getenv("SQL_ECHO", "false").lower() == "true",  # set SQL_ECHO=true to debug
-    pool_pre_ping=True,      # detect stale connections (important for Supabase pooler)
-    pool_recycle=300,        # recycle connections every 5 min (Supabase closes idle ones)
+    echo=os.getenv("SQL_ECHO", "false").lower() == "true",  
+    pool_pre_ping=True,      
+    pool_recycle=300,        
 )
-
 
 def create_db_and_tables() -> None:
     """Create all tables that don't already exist.

@@ -1,98 +1,87 @@
+"""SQLModel ORM models for database tables.
+
+These models are used for database operations. They inherit from SQLModel which
+provides both Pydantic validation and SQLAlchemy ORM capabilities.
+"""
+
 from typing import Optional
 from datetime import datetime
 from sqlmodel import Field, SQLModel
-from uuid import UUID
+from uuid import UUID, uuid4
 
 
-# ---------------------------------------------------------------------------
-# User
-# email registration, Donor / Requester / both roles
-# ---------------------------------------------------------------------------
-class User(SQLModel, table=True):
-    id: Optional[UUID] = Field(default=None, primary_key=True)
+class UserTable(SQLModel, table=True):
+    """User table - stores user profiles"""
+    __tablename__ = "user"
+    
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    supabase_id: str = Field(unique=True, index=True)
     email: str = Field(unique=True, index=True)
     name: str
     password_hash: str
-
-    # Role flags — a user may hold one or both roles
     is_donor: bool = False
-    is_requester: bool = False          
+    is_requester: bool = False
 
 
-# ---------------------------------------------------------------------------
-# Item
-# title, category, description, condition, quantity, location,
-#             optional photo uploads, status
-# ---------------------------------------------------------------------------
-class Item(SQLModel, table=True):
-    id: Optional[UUID] = Field(default=None, primary_key=True)
+class ItemTable(SQLModel, table=True):
+    """Item table - stores item listings"""
+    __tablename__ = "item"
+    
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
     donor_id: UUID = Field(foreign_key="user.id", index=True)
-
     name: str
-    #categories: Clothing | Food | Bedding | Hygiene |
-    #                       Textbooks | Electronics | Other
     category: str
     description: str
-    # condition field required on listing form
-    condition: str                      # e.g. "New", "Good", "Fair"
+    condition: str
     quantity: int
-    # campus locations across the Five College Consortium
-    location: str                       # campus name / pickup spot
-
-    # one or more photos stored in object storage (Supabase Storage)
-    # Store a comma-separated list of public URLs so we stay schema-simple
-    photo_urls: Optional[str] = None    # e.g. "url1,url2"
-
-    
-    status: str = Field(default="Available")
-
+    location: str
+    photo_urls: Optional[str] = None
+    status: str = "Available"
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
-# ---------------------------------------------------------------------------
-# Request
-#  Pending → Approved → Completed (or Rejected)
-# ---------------------------------------------------------------------------
-class Request(SQLModel, table=True):
-    id: Optional[UUID] = Field(default=None, primary_key=True)
+class RequestTable(SQLModel, table=True):
+    """Request table - stores item requests"""
+    __tablename__ = "request"
+    
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
     requester_id: UUID = Field(foreign_key="user.id", index=True)
     item_id: UUID = Field(foreign_key="item.id", index=True)
-
     requested_quantity: int
-    #status lifecycle
-    status: str = Field(default="Pending")  # Pending | Approved | Rejected | Completed
-
+    status: str = "Pending"  # Pending | Approved | Rejected | Completed
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
-# ---------------------------------------------------------------------------
-# Message
-# private thread per approved request; both parties can message
-# ---------------------------------------------------------------------------
-class Message(SQLModel, table=True):
+class MessageTable(SQLModel, table=True):
+    """Message table - stores messages in approved requests"""
     __tablename__ = "message"
-    id: Optional[UUID] = Field(default=None, primary_key=True)
-    request_id: UUID = Field(foreign_key="request.id", index=True)
-    sender_id: UUID = Field(foreign_key="user.id")
-
-    #failure case — max 1 000 characters
-    body: str = Field(max_length=1000)
-
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-
-
-# ---------------------------------------------------------------------------
-# Notification
-#  persisted notifications for requests, approvals, messages
-# ---------------------------------------------------------------------------
-class Notification(SQLModel, table=True):
-    id: Optional[UUID] = Field(default=None, primary_key=True)
-    user_id: UUID = Field(foreign_key="user.id", index=True)
-
     
-    message: str
-    # Link to the relevant resource, e.g. "/requests/42"
-    link: Optional[str] = None
-    is_read: bool = Field(default=False)
-
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    request_id: UUID = Field(foreign_key="request.id", index=True)
+    sender_id: UUID = Field(foreign_key="user.id", index=True)
+    body: str = Field(max_length=1000)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class NotificationTable(SQLModel, table=True):
+    """Notification table - stores user notifications"""
+    __tablename__ = "notification"
+    
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    user_id: UUID = Field(foreign_key="user.id", index=True)
+    message: str
+    link: Optional[str] = None
+    is_read: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ProfilesTable(SQLModel, table=True):
+    """Profiles table - Supabase auth profiles"""
+    __tablename__ = "profiles"
+    
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    created_at: Optional[datetime] = None
+    email: Optional[str] = None
+    name: Optional[str] = None
+    phone_number: Optional[str] = None
+    role: Optional[str] = None

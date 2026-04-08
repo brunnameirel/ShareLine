@@ -16,7 +16,7 @@ from sqlmodel import Session, select
 from jose import JWTError, jwt
 
 from db import SessionDep, engine
-from backend.models import MessageTable, NotificationTable, RequestTable, ItemTable, UserTable
+from models import MessageTable, NotificationTable, RequestTable, ItemTable, UserTable
 from routers.auth import get_current_user
 
 router = APIRouter(prefix="/messages", tags=["messages"])

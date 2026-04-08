@@ -18,7 +18,6 @@ class UserTable(SQLModel, table=True):
     supabase_id: str = Field(unique=True, index=True)
     email: str = Field(unique=True, index=True)
     name: str
-    password_hash: str
     is_donor: bool = False
     is_requester: bool = False
 

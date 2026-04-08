@@ -16,7 +16,7 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, WebSocke
 from sqlmodel import select
 from jose import JWTError, jwt
 
-from backend.models import UserTable, NotificationTable
+from models import UserTable, NotificationTable
 from db import SessionDep
 from routers.auth import get_current_user
 

@@ -51,6 +51,74 @@ export default function Login() {
     <Box
       sx={{
         minHeight: '100vh',
+        background: 'linear-gradient(145deg, #F5E2CE 0%, #DFBC94 50%, #F5E2CE 100%)',
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          px: { xs: 3, md: 6 },
+          py: 2,
+          backgroundColor: 'rgba(255,250,245,0.9)',
+          backdropFilter: 'blur(8px)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+        }}
+      >
+        <Box
+          component={Link}
+          to="/"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            textDecoration: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #B53324, #E5A657)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <VolunteerActivism sx={{ color: '#F5E2CE', fontSize: 20 }} />
+          </Box>
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 700, color: '#B53324', letterSpacing: '-0.5px' }}
+          >
+            ShareLine
+          </Typography>
+        </Box>
+
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <Button
+            component={Link}
+            to="/register"
+            sx={{
+              textTransform: 'none',
+              fontWeight: 600,
+              color: '#B53324',
+              '&:hover': { backgroundColor: '#F5E2CE' },
+            }}
+          >
+            Register
+          </Button>
+      </Box>
+    </Box>
+
+    <Box
+      sx={{
+        minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -236,6 +304,7 @@ export default function Login() {
           </Typography>
         </CardContent>
       </Card>
+      </Box>
     </Box>
   );
 }

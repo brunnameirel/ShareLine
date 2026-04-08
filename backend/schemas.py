@@ -8,24 +8,24 @@ from uuid import UUID
 # Read = what the API sends back
 # Update = what the client sends for edits.
 
-# User 
+# Profile (replaces User - auth handled by Supabase)
 class UserCreate(BaseModel):
-    email: EmailStr
+    """Schema for creating a user profile after Supabase auth signup"""
     name: str
-    password: str = Field(min_length=8)
     is_donor: bool = False
     is_requester: bool = False
 
 
 class UserLogin(BaseModel):
+    """Schema for Supabase auth login (handled by Supabase client)"""
     email: EmailStr
     password: str
-    active_role: str  # "donor" | "requester"
 
 
 class UserRead(BaseModel):
+    """Schema for reading user profile"""
     id: UUID
-    email: str
+    supabase_id: str
     name: str
     is_donor: bool
     is_requester: bool

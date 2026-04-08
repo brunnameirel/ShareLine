@@ -39,7 +39,7 @@ export default function Login() {
       if (authError) throw authError;
 
       localStorage.setItem('activeRole', activeRole);
-      navigate(activeRole === 'donor' ? '/donor/dashboard' : '/requester/dashboard');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Invalid credentials');
     } finally {

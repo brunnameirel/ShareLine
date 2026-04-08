@@ -4,7 +4,7 @@ import os
 
 from fastapi import Depends
 from sqlmodel import SQLModel, Session, create_engine
-from dotenv import load_dotenv  # <-- 1. Import this
+from dotenv import load_dotenv  
 
 # ---------------------------------------------------------------------------
 # Database connection
@@ -43,3 +43,9 @@ def get_session() -> Generator[Session, None, None]:
 # Convenient type alias — use this in router function signatures:
 #   def my_route(session: SessionDep): ...
 SessionDep = Annotated[Session, Depends(get_session)]
+
+# Optional: For direct Supabase REST API access
+# from supabase import create_client
+# SUPABASE_URL = os.getenv("SUPABASE_URL")
+# SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+# supabase = create_client(SUPABASE_URL, SUPABASE_KEY)

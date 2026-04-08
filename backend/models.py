@@ -70,6 +70,7 @@ class Request(SQLModel, table=True):
 # private thread per approved request; both parties can message
 # ---------------------------------------------------------------------------
 class Message(SQLModel, table=True):
+    __tablename__ = "message"
     id: Optional[UUID] = Field(default=None, primary_key=True)
     request_id: UUID = Field(foreign_key="request.id", index=True)
     sender_id: UUID = Field(foreign_key="user.id")

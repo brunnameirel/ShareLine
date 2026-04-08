@@ -2,6 +2,7 @@
 from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field
+from uuid import UUID
 
 #Create = what the client sends in
 # Read = what the API sends back
@@ -23,7 +24,7 @@ class UserLogin(BaseModel):
 
 
 class UserRead(BaseModel):
-    id: int
+    id: UUID
     email: str
     name: str
     is_donor: bool
@@ -48,8 +49,8 @@ class ItemCreate(BaseModel):
 
 
 class ItemRead(BaseModel):
-    id: int
-    donor_id: int
+    id: UUID
+    donor_id: UUID
     name: str
     category: str
     description: str
@@ -75,14 +76,14 @@ class ItemUpdate(BaseModel):
 # Request
 
 class RequestCreate(BaseModel):
-    item_id: int
+    item_id: UUID
     requested_quantity: int = Field(gt=0)
 
 
 class RequestRead(BaseModel):
-    id: int
-    requester_id: int
-    item_id: int
+    id: UUID
+    requester_id: UUID
+    item_id: UUID
     requested_quantity: int
     status: str
     created_at: datetime
@@ -95,14 +96,14 @@ class RequestUpdate(BaseModel):
 # Message
 
 class MessageCreate(BaseModel):
-    request_id: int
+    request_id: UUID
     body: str = Field(max_length=1000)
 
 
 class MessageRead(BaseModel):
-    id: int
-    request_id: int
-    sender_id: int
+    id: UUID
+    request_id: UUID
+    sender_id: UUID
     body: str
     created_at: datetime
 
@@ -110,8 +111,8 @@ class MessageRead(BaseModel):
 # Notification 
 
 class NotificationRead(BaseModel):
-    id: int
-    user_id: int
+    id: UUID
+    user_id: UUID
     message: str
     link: Optional[str] = None
     is_read: bool

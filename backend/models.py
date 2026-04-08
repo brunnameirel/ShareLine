@@ -1,6 +1,7 @@
 from typing import Optional
 from datetime import datetime
 from sqlmodel import Field, SQLModel
+from uuid import UUID
 
 
 # ---------------------------------------------------------------------------
@@ -8,7 +9,7 @@ from sqlmodel import Field, SQLModel
 # email registration, Donor / Requester / both roles
 # ---------------------------------------------------------------------------
 class User(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[UUID] = Field(default=None, primary_key=True)
     email: str = Field(unique=True, index=True)
     name: str
     password_hash: str
@@ -24,8 +25,8 @@ class User(SQLModel, table=True):
 #             optional photo uploads, status
 # ---------------------------------------------------------------------------
 class Item(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    donor_id: int = Field(foreign_key="user.id", index=True)
+    id: Optional[UUID] = Field(default=None, primary_key=True)
+    donor_id: UUID = Field(foreign_key="user.id", index=True)
 
     name: str
     #categories: Clothing | Food | Bedding | Hygiene |
@@ -53,9 +54,9 @@ class Item(SQLModel, table=True):
 #  Pending → Approved → Completed (or Rejected)
 # ---------------------------------------------------------------------------
 class Request(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    requester_id: int = Field(foreign_key="user.id", index=True)
-    item_id: int = Field(foreign_key="item.id", index=True)
+    id: Optional[UUID] = Field(default=None, primary_key=True)
+    requester_id: UUID = Field(foreign_key="user.id", index=True)
+    item_id: UUID = Field(foreign_key="item.id", index=True)
 
     requested_quantity: int
     #status lifecycle
@@ -69,9 +70,10 @@ class Request(SQLModel, table=True):
 # private thread per approved request; both parties can message
 # ---------------------------------------------------------------------------
 class Message(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    request_id: int = Field(foreign_key="request.id", index=True)
-    sender_id: int = Field(foreign_key="user.id")
+    __tablename__ = "message"
+    id: Optional[UUID] = Field(default=None, primary_key=True)
+    request_id: UUID = Field(foreign_key="request.id", index=True)
+    sender_id: UUID = Field(foreign_key="user.id")
 
     #failure case — max 1 000 characters
     body: str = Field(max_length=1000)
@@ -84,8 +86,8 @@ class Message(SQLModel, table=True):
 #  persisted notifications for requests, approvals, messages
 # ---------------------------------------------------------------------------
 class Notification(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="user.id", index=True)
+    id: Optional[UUID] = Field(default=None, primary_key=True)
+    user_id: UUID = Field(foreign_key="user.id", index=True)
 
     
     message: str

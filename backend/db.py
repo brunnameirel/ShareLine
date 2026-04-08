@@ -4,7 +4,7 @@ import os
 
 from fastapi import Depends
 from sqlmodel import SQLModel, Session, create_engine
-from dotenv import load_dotenv  
+from dotenv import load_dotenv  # <-- 1. Import this
 
 # ---------------------------------------------------------------------------
 # Database connection

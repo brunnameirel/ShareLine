@@ -45,7 +45,6 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // 1. Sign up with Supabase Auth
       const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -60,7 +59,6 @@ export default function Register() {
 
       if (authError) throw authError;
 
-      // 2. Create profile in your backend
       const token = data.session?.access_token;
       if (token) {
         const res = await fetch('http://localhost:8000/auth/profile', {
@@ -98,7 +96,7 @@ export default function Register() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(145deg, #f0fdf4 0%, #ecfeff 50%, #f0f9ff 100%)',
+        background: 'linear-gradient(145deg, #F5E2CE 0%, #DFBC94 50%, #F5E2CE 100%)',
         px: 2,
       }}
     >
@@ -109,7 +107,8 @@ export default function Register() {
           width: '100%',
           borderRadius: 4,
           border: '1px solid',
-          borderColor: 'grey.200',
+          borderColor: '#DFBC94',
+          backgroundColor: '#fff',
         }}
       >
         <CardContent sx={{ p: 5 }}>
@@ -123,23 +122,31 @@ export default function Register() {
                 width: 52,
                 height: 52,
                 borderRadius: 3,
-                background: 'linear-gradient(135deg, #16a34a, #0d9488)',
+                background: 'linear-gradient(135deg, #B53324, #E5A657)',
                 mb: 2,
               }}
             >
-              <VolunteerActivism sx={{ color: '#fff', fontSize: 28 }} />
+              <VolunteerActivism sx={{ color: '#F5E2CE', fontSize: 28 }} />
             </Box>
-            <Typography variant="h5" fontWeight={700} color="text.primary">
+            <Typography variant="h5" fontWeight={700} sx={{ color: '#B53324' }}>
               Create your account
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" sx={{ color: '#8a6d4b', mt: 0.5 }}>
               Join the Five College sharing community
             </Typography>
           </Box>
 
           {/* Error Alert */}
           {error && (
-            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+            <Alert
+              severity="error"
+              sx={{
+                mb: 3,
+                borderRadius: 2,
+                backgroundColor: '#fce8e6',
+                color: '#B53324',
+              }}
+            >
               {error}
             </Alert>
           )}
@@ -152,7 +159,13 @@ export default function Register() {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              sx={{ mb: 2.5 }}
+              sx={{
+                mb: 2.5,
+                '& .MuiOutlinedInput-root': {
+                  '&.Mui-focused fieldset': { borderColor: '#B53324' },
+                },
+                '& .MuiInputLabel-root.Mui-focused': { color: '#B53324' },
+              }}
               size="medium"
             />
 
@@ -163,7 +176,13 @@ export default function Register() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              sx={{ mb: 2.5 }}
+              sx={{
+                mb: 2.5,
+                '& .MuiOutlinedInput-root': {
+                  '&.Mui-focused fieldset': { borderColor: '#B53324' },
+                },
+                '& .MuiInputLabel-root.Mui-focused': { color: '#B53324' },
+              }}
               size="medium"
             />
 
@@ -175,7 +194,13 @@ export default function Register() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               helperText="Must be at least 8 characters"
-              sx={{ mb: 3 }}
+              sx={{
+                mb: 3,
+                '& .MuiOutlinedInput-root': {
+                  '&.Mui-focused fieldset': { borderColor: '#B53324' },
+                },
+                '& .MuiInputLabel-root.Mui-focused': { color: '#B53324' },
+              }}
               size="medium"
               InputProps={{
                 endAdornment: (
@@ -189,7 +214,7 @@ export default function Register() {
             />
 
             {/* Role Selection */}
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+            <Typography variant="body2" sx={{ color: '#8a6d4b', mb: 0.5 }}>
               I want to… (select at least one)
             </Typography>
             <FormGroup row sx={{ mb: 3 }}>
@@ -199,7 +224,7 @@ export default function Register() {
                     checked={isDonor}
                     onChange={(e) => setIsDonor(e.target.checked)}
                     sx={{
-                      '&.Mui-checked': { color: '#16a34a' },
+                      '&.Mui-checked': { color: '#B53324' },
                     }}
                   />
                 }
@@ -215,7 +240,7 @@ export default function Register() {
                     checked={isRequester}
                     onChange={(e) => setIsRequester(e.target.checked)}
                     sx={{
-                      '&.Mui-checked': { color: '#0d9488' },
+                      '&.Mui-checked': { color: '#E5A657' },
                     }}
                   />
                 }
@@ -238,9 +263,11 @@ export default function Register() {
                 textTransform: 'none',
                 fontWeight: 600,
                 fontSize: '1rem',
-                background: 'linear-gradient(135deg, #16a34a, #0d9488)',
+                background: 'linear-gradient(135deg, #B53324, #E5A657)',
+                boxShadow: 'none',
                 '&:hover': {
-                  background: 'linear-gradient(135deg, #15803d, #0f766e)',
+                  background: 'linear-gradient(135deg, #922a1d, #c48d45)',
+                  boxShadow: 'none',
                 },
               }}
             >
@@ -249,11 +276,11 @@ export default function Register() {
           </Box>
 
           {/* Footer */}
-          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 3 }}>
+          <Typography variant="body2" sx={{ color: '#8a6d4b', textAlign: 'center', mt: 3 }}>
             Already have an account?{' '}
             <Link
               to="/login"
-              style={{ color: '#16a34a', fontWeight: 600, textDecoration: 'none' }}
+              style={{ color: '#B53324', fontWeight: 600, textDecoration: 'none' }}
             >
               Sign in
             </Link>

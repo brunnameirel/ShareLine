@@ -38,9 +38,7 @@ export default function Login() {
 
       if (authError) throw authError;
 
-      // Store the active role for this session
       localStorage.setItem('activeRole', activeRole);
-
       navigate(activeRole === 'donor' ? '/donor/dashboard' : '/requester/dashboard');
     } catch (err) {
       setError(err.message || 'Invalid credentials');
@@ -56,7 +54,7 @@ export default function Login() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(145deg, #f0fdf4 0%, #ecfeff 50%, #f0f9ff 100%)',
+        background: 'linear-gradient(145deg, #F5E2CE 0%, #DFBC94 50%, #F5E2CE 100%)',
         px: 2,
       }}
     >
@@ -67,7 +65,8 @@ export default function Login() {
           width: '100%',
           borderRadius: 4,
           border: '1px solid',
-          borderColor: 'grey.200',
+          borderColor: '#DFBC94',
+          backgroundColor: '#fff',
         }}
       >
         <CardContent sx={{ p: 5 }}>
@@ -81,23 +80,31 @@ export default function Login() {
                 width: 52,
                 height: 52,
                 borderRadius: 3,
-                background: 'linear-gradient(135deg, #16a34a, #0d9488)',
+                background: 'linear-gradient(135deg, #B53324, #E5A657)',
                 mb: 2,
               }}
             >
-              <VolunteerActivism sx={{ color: '#fff', fontSize: 28 }} />
+              <VolunteerActivism sx={{ color: '#F5E2CE', fontSize: 28 }} />
             </Box>
-            <Typography variant="h5" fontWeight={700} color="text.primary">
+            <Typography variant="h5" fontWeight={700} sx={{ color: '#B53324' }}>
               Welcome back
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" sx={{ color: '#8a6d4b', mt: 0.5 }}>
               Sign in to ShareLine
             </Typography>
           </Box>
 
           {/* Error Alert */}
           {error && (
-            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+            <Alert
+              severity="error"
+              sx={{
+                mb: 3,
+                borderRadius: 2,
+                backgroundColor: '#fce8e6',
+                color: '#B53324',
+              }}
+            >
               {error}
             </Alert>
           )}
@@ -111,7 +118,13 @@ export default function Login() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              sx={{ mb: 2.5 }}
+              sx={{
+                mb: 2.5,
+                '& .MuiOutlinedInput-root': {
+                  '&.Mui-focused fieldset': { borderColor: '#B53324' },
+                },
+                '& .MuiInputLabel-root.Mui-focused': { color: '#B53324' },
+              }}
               size="medium"
             />
 
@@ -122,7 +135,13 @@ export default function Login() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              sx={{ mb: 3 }}
+              sx={{
+                mb: 3,
+                '& .MuiOutlinedInput-root': {
+                  '&.Mui-focused fieldset': { borderColor: '#B53324' },
+                },
+                '& .MuiInputLabel-root.Mui-focused': { color: '#B53324' },
+              }}
               size="medium"
               InputProps={{
                 endAdornment: (
@@ -136,7 +155,7 @@ export default function Login() {
             />
 
             {/* Role Selector */}
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            <Typography variant="body2" sx={{ color: '#8a6d4b', mb: 1 }}>
               Log in as
             </Typography>
             <ToggleButtonGroup
@@ -152,9 +171,12 @@ export default function Login() {
                   textTransform: 'none',
                   fontWeight: 600,
                   '&.Mui-selected': {
-                    backgroundColor: '#f0fdf4',
-                    color: '#16a34a',
-                    borderColor: '#16a34a',
+                    backgroundColor: '#F5E2CE',
+                    color: '#B53324',
+                    borderColor: '#B53324',
+                  },
+                  '&.Mui-selected:hover': {
+                    backgroundColor: '#f0d4b8',
                   },
                 }}
               >
@@ -166,9 +188,12 @@ export default function Login() {
                   textTransform: 'none',
                   fontWeight: 600,
                   '&.Mui-selected': {
-                    backgroundColor: '#ecfeff',
-                    color: '#0d9488',
-                    borderColor: '#0d9488',
+                    backgroundColor: '#FFF3E0',
+                    color: '#c48d45',
+                    borderColor: '#E5A657',
+                  },
+                  '&.Mui-selected:hover': {
+                    backgroundColor: '#ffe8cc',
                   },
                 }}
               >
@@ -187,9 +212,11 @@ export default function Login() {
                 textTransform: 'none',
                 fontWeight: 600,
                 fontSize: '1rem',
-                background: 'linear-gradient(135deg, #16a34a, #0d9488)',
+                background: 'linear-gradient(135deg, #B53324, #E5A657)',
+                boxShadow: 'none',
                 '&:hover': {
-                  background: 'linear-gradient(135deg, #15803d, #0f766e)',
+                  background: 'linear-gradient(135deg, #922a1d, #c48d45)',
+                  boxShadow: 'none',
                 },
               }}
             >
@@ -198,11 +225,11 @@ export default function Login() {
           </Box>
 
           {/* Footer */}
-          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 3 }}>
+          <Typography variant="body2" sx={{ color: '#8a6d4b', textAlign: 'center', mt: 3 }}>
             Don't have an account?{' '}
             <Link
               to="/register"
-              style={{ color: '#16a34a', fontWeight: 600, textDecoration: 'none' }}
+              style={{ color: '#B53324', fontWeight: 600, textDecoration: 'none' }}
             >
               Sign up
             </Link>

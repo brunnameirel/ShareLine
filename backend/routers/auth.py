@@ -132,3 +132,19 @@ def create_profile(
 @router.get("/me", response_model=UserRead)
 def get_me(user: UserTable = Depends(get_current_user)):
     return user
+
+
+# ✏️ Update profile name / roles
+@router.patch("/me", response_model=UserRead)
+def update_me(
+    data: UserCreate,
+    session: SessionDep,
+    current_user: UserTable = Depends(get_current_user),
+):
+    current_user.name = data.name
+    current_user.is_donor = data.is_donor
+    current_user.is_requester = data.is_requester
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+    return current_user

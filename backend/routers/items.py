@@ -2,7 +2,7 @@
 
 from typing import Optional, List
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import select
@@ -10,16 +10,16 @@ from uuid import UUID
 
 from db import SessionDep
 # prevents collision with Request from fastapi
-from models import Item, User, Request as ItemRequest
+from models import ItemTable, UserTable, RequestTable
 from schemas import ItemCreate
-from .auth import UserRoleDep
+from .auth import get_current_user, require_donor, require_requester
 
 router = APIRouter(tags=["items"])
 
 templates = Jinja2Templates(directory="templates")
 
 
-@router.post("/", response_model=Item)
+@router.post("/", response_model=ItemTable)
 def create_item(item_in: ItemCreate, session: SessionDep):
     """
     Create a new item batch for a donor.
@@ -27,7 +27,7 @@ def create_item(item_in: ItemCreate, session: SessionDep):
     """
 
     # 1) Check user or admin exists
-    donor = session.get(User, item_in.donor_id)
+    donor = session.get(UserTable, item_in.donor_id)
     if donor is None or not donor.is_donor:
         raise HTTPException(
             status_code=400,
@@ -35,13 +35,13 @@ def create_item(item_in: ItemCreate, session: SessionDep):
         )
 
     # 2) Check if a similar item already exists (same donor, name, category, location, description, condition)
-    query = select(Item).where(
-        Item.donor_id == item_in.donor_id,
-        Item.name == item_in.name,
-        Item.category == item_in.category,
-        Item.location == item_in.location,
-        Item.description == item_in.description,
-        Item.condition == item_in.condition,
+    query = select(ItemTable).where(
+        ItemTable.donor_id == item_in.donor_id,
+        ItemTable.name == item_in.name,
+        ItemTable.category == item_in.category,
+        ItemTable.location == item_in.location,
+        ItemTable.description == item_in.description,
+        ItemTable.condition == item_in.condition,
     )
     existing = session.exec(query).first()
 
@@ -59,7 +59,7 @@ def create_item(item_in: ItemCreate, session: SessionDep):
         return existing
 
     # 4) Otherwise create a brand new item
-    item = Item(
+    item = ItemTable(
         donor_id=item_in.donor_id,
         name=item_in.name,
         category=item_in.category,
@@ -77,7 +77,7 @@ def create_item(item_in: ItemCreate, session: SessionDep):
     return item
 
 
-@router.get("/", response_model=List[Item])
+@router.get("/", response_model=List[ItemTable])
 def list_items(
     session: SessionDep,
     category: Optional[str] = None,
@@ -88,19 +88,19 @@ def list_items(
     """
     List items, optionally filtered by category, location, status, and min_quantity.
     """
-    query = select(Item)
+    query = select(ItemTable)
 
     if category is not None:
-        query = query.where(Item.category == category)
+        query = query.where(ItemTable.category == category)
 
     if location is not None:
-        query = query.where(Item.location == location)
+        query = query.where(ItemTable.location == location)
 
     if status is not None:
-        query = query.where(Item.status == status)
+        query = query.where(ItemTable.status == status)
 
     if min_quantity is not None:
-        query = query.where(Item.quantity >= min_quantity)
+        query = query.where(ItemTable.quantity >= min_quantity)
 
     results = session.exec(query).all()
     return results
@@ -110,19 +110,10 @@ def list_items(
 def delete_item(
     item_id: UUID,
     session: SessionDep,
-    current: UserRoleDep,
+    user: UserTable = Depends(require_donor),
 ):
-    user = current["user"]
-    role = current["role"]
-    
-    # Only donors can delete items
-    if role != "donor":
-        raise HTTPException(
-            status_code=403,
-            detail="Only donors can delete items.",
-        )
 
-    item = session.get(Item, item_id)
+    item = session.get(ItemTable, item_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Item not found")
 
@@ -140,7 +131,7 @@ def delete_item(
         )
 
     # If you also want to clean up old non-pending requests, you *can* do:
-    old_requests = session.exec(select(ItemRequest).where(ItemRequest.item_id == item_id)).all()
+    old_requests = session.exec(select(RequestTable).where(RequestTable.item_id == item_id)).all()
     for r in old_requests:
         session.delete(r)
 
@@ -149,29 +140,27 @@ def delete_item(
     return {"detail": "Item deleted successfully"}
 
 @router.get("/my", response_class=HTMLResponse)
-def my_items_page(request: Request, session: SessionDep, current: UserRoleDep):
-    user = current["user"]
-    role = current["role"]
+def my_items_page(
+    request: Request, 
+    session: SessionDep, 
+    user: UserTable = Depends(require_donor)
+):
     
-    if role != "donor":
-        raise HTTPException(status_code=403, detail="Only donors can view this page.")
-
     items = session.exec(
-        select(Item).where(Item.donor_id == user.id)
+        select(ItemTable).where(ItemTable.donor_id == user.id)
     ).all()
 
     return templates.TemplateResponse(
         "items_my.html",
-        {"request": request, "current_user": user, "current_role": role, "items": items},
+        {"request": request, "current_user": user, "items": items},
     )
 
 @router.post("/new")
-async def create_item_from_form(request: Request, session: SessionDep, current: UserRoleDep):
-    user = current["user"]
-    role = current["role"]
-
-    if role != "donor":
-        raise HTTPException(status_code=403, detail="Only donors can create items.")
+async def create_item_from_form(
+    request: Request, 
+    session: SessionDep, 
+    user: UserTable = Depends(require_donor)
+):
 
     form = await request.form() # type: ignore
 
@@ -210,31 +199,25 @@ async def create_item_from_form(request: Request, session: SessionDep, current: 
     return RedirectResponse(url="/items/my", status_code=303)
 
 @router.get("/new", response_class=HTMLResponse)
-def new_item_page(request: Request, current: UserRoleDep):
-    user = current["user"]
-    role = current["role"]
-    
-    if role != "donor":
-        raise HTTPException(
-            status_code=403,
-            detail="Only donors can create items.",
-        )
+def new_item_page(
+    request: Request, 
+    user: UserTable = Depends(require_donor)
+):
 
     return templates.TemplateResponse(
         "items_new.html",
         {
             "request": request,
             "current_user": user,
-            "current_role": role,
         },
     )
     
-@router.get("/{item_id}", response_model=Item)
+@router.get("/{item_id}", response_model=ItemTable)
 def get_item(item_id: UUID, session: SessionDep):
     """
     Get a single item by ID.
     """
-    item = session.get(Item, item_id)
+    item = session.get(ItemTable, item_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Item not found")
     return item

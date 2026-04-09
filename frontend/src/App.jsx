@@ -6,7 +6,7 @@ import Dashboard from './pages/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import AuthCallback from './pages/AuthCallback';
 import Onboarding from './pages/Onboarding';
-import Message from './pages/Message';
+import MessagesPage from './pages/MessagesPage';
 
 function App() {
   return (
@@ -33,7 +33,7 @@ function App() {
           path="/messages"
           element={
             <ProtectedRoute>
-              <Message />
+              <MessagesPage />
             </ProtectedRoute>
           }
         />

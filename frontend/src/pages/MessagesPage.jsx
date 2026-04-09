@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Box, Typography, Avatar, IconButton, TextField, CircularProgress, Skeleton } from '@mui/material';
 import {
   Send,
@@ -366,7 +366,7 @@ export default function MessagesPage() {
   };
 
   return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', background: brand.bg }}>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#FFFAF5' }}>
 
       {/* ── Top navbar ── */}
       <Box
@@ -374,23 +374,25 @@ export default function MessagesPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          px: { xs: 2, md: 4 },
+          px: { xs: 2, md: 5 },
           py: 1.5,
-          backgroundColor: 'rgba(255,250,245,0.92)',
-          backdropFilter: 'blur(10px)',
-          borderBottom: `1px solid ${brand.tan}`,
+          backgroundColor: '#fff',
+          borderBottom: '1px solid #f0e0cc',
           flexShrink: 0,
+          position: 'sticky',
+          top: 0,
           zIndex: 10,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <IconButton onClick={() => navigate(-1)} size="small">
-            <ArrowBack sx={{ color: brand.red }} />
-          </IconButton>
+        <Box
+          component={Link}
+          to="/dashboard"
+          sx={{ display: 'flex', alignItems: 'center', gap: 1.5, textDecoration: 'none' }}
+        >
           <Box
             sx={{
-              width: 32,
-              height: 32,
+              width: 34,
+              height: 34,
               borderRadius: 2,
               background: `linear-gradient(135deg, ${brand.red}, ${brand.gold})`,
               display: 'flex',
@@ -400,14 +402,14 @@ export default function MessagesPage() {
           >
             <VolunteerActivism sx={{ color: brand.cream, fontSize: 18 }} />
           </Box>
-          <Typography sx={{ fontWeight: 700, color: brand.red, fontSize: 18, letterSpacing: '-0.5px' }}>
+          <Typography sx={{ fontWeight: 700, color: brand.red, fontSize: 17, letterSpacing: '-0.5px' }}>
             ShareLine
           </Typography>
         </Box>
-        <Typography sx={{ fontWeight: 700, color: '#2c1a0e', fontSize: 16 }}>
+        <Typography sx={{ fontWeight: 700, color: '#2c1a0e', fontSize: 15 }}>
           Messages
         </Typography>
-        <Box sx={{ width: 80 }} /> {/* spacer */}
+        <Box sx={{ width: 80 }} />
       </Box>
 
       {/* ── Main layout ── */}
@@ -419,7 +421,7 @@ export default function MessagesPage() {
             width: { xs: activeRequestId ? 0 : '100%', md: 320 },
             flexShrink: 0,
             borderRight: `1px solid ${brand.tan}`,
-            backgroundColor: 'rgba(255,250,245,0.95)',
+            backgroundColor: '#fff',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
@@ -467,7 +469,7 @@ export default function MessagesPage() {
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            backgroundColor: 'rgba(245,226,206,0.2)',
+            backgroundColor: '#FFFAF5',
           }}
         >
           {!activeRequestId ? (
@@ -480,7 +482,7 @@ export default function MessagesPage() {
                   px: 3,
                   py: 1.5,
                   borderBottom: `1px solid ${brand.tan}`,
-                  backgroundColor: 'rgba(255,250,245,0.95)',
+                  backgroundColor: '#fff',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 1.5,
@@ -595,7 +597,7 @@ export default function MessagesPage() {
                   px: { xs: 2, md: 3 },
                   py: 1.5,
                   borderTop: `1px solid ${brand.tan}`,
-                  backgroundColor: 'rgba(255,250,245,0.95)',
+                  backgroundColor: '#fff',
                   display: 'flex',
                   alignItems: 'flex-end',
                   gap: 1,

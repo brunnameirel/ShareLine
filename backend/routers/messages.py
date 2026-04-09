@@ -1,31 +1,27 @@
-"""
-Endpoints:
-    GET  /messages/{request_id}      — fetch full message history
-    POST /messages/{request_id}      — send a message in a thread
-    WS   /messages/{request_id}/ws  — real-time WebSocket connection
-"""
-
 import os
 from datetime import datetime
 from typing import Dict, List, Set
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, WebSocketException, status, Query
+from fastapi import (
+    APIRouter, Depends, HTTPException, WebSocket, 
+    WebSocketDisconnect, WebSocketException, status, Query
+)
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 from jose import JWTError, jwt
 
+# Assuming these are your local imports based on your snippets
 from db import SessionDep, engine
 from models import MessageTable, NotificationTable, RequestTable, ItemTable, UserTable
 from routers.auth import get_current_user
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
+# Ensure this matches your Supabase Project Settings > API > JWT Secret
 SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
 
-# ---------------------------------------------------------------------------
-# Pydantic schemas
-# ---------------------------------------------------------------------------
+# --- SCHEMAS ---
 
 class MessageCreate(BaseModel):
     body: str = Field(..., min_length=1, max_length=1000)
@@ -40,12 +36,41 @@ class MessageRead(BaseModel):
     class Config:
         from_attributes = True
 
-# ---------------------------------------------------------------------------
-# WebSocket Auth Helper
-# ---------------------------------------------------------------------------
+# --- WEBSOCKET CONNECTION MANAGER ---
 
-def get_user_ws(token: str, session: Session) -> UserTable:
-    """Decodes the JWT from a WebSocket query parameter."""
+class ConnectionManager:
+    def __init__(self) -> None:
+        # Maps request_id (thread) to a set of active WebSocket connections
+        self.active_connections: Dict[UUID, Set[WebSocket]] = {}
+
+    async def connect(self, request_id: UUID, websocket: WebSocket):
+        await websocket.accept()
+        if request_id not in self.active_connections:
+            self.active_connections[request_id] = set()
+        self.active_connections[request_id].add(websocket)
+
+    def disconnect(self, request_id: UUID, websocket: WebSocket):
+        if request_id in self.active_connections:
+            self.active_connections[request_id].discard(websocket)
+            if not self.active_connections[request_id]:
+                del self.active_connections[request_id]
+
+    async def broadcast(self, request_id: UUID, message_data: dict):
+        """Sends a JSON message to everyone listening to a specific thread."""
+        if request_id in self.active_connections:
+            for connection in list(self.active_connections[request_id]):
+                try:
+                    await connection.send_json(message_data)
+                except Exception:
+                    # Clean up stale connections if sending fails
+                    self.active_connections[request_id].discard(connection)
+
+manager = ConnectionManager()
+
+# --- HELPERS ---
+
+def get_user_from_ws_token(token: str, session: Session) -> UserTable:
+    """Validates Supabase JWT for WebSocket connections."""
     try:
         payload = jwt.decode(
             token, 
@@ -54,180 +79,126 @@ def get_user_ws(token: str, session: Session) -> UserTable:
             options={"verify_aud": False}
         )
         supabase_uid = payload.get("sub")
-        if supabase_uid is None:
+        if not supabase_uid:
             raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
             
         user = session.exec(select(UserTable).where(UserTable.supabase_id == supabase_uid)).first()
-        if user is None:
+        if not user:
             raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
-            
         return user
     except JWTError:
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
 
-# ---------------------------------------------------------------------------
-# WebSocket connection manager
-# ---------------------------------------------------------------------------
-
-class ConnectionManager:
-    def __init__(self) -> None:
-        self.active: Dict[UUID, Set[WebSocket]] = {}
-
-    async def connect(self, request_id: UUID, ws: WebSocket) -> None:
-        await ws.accept()
-        self.active.setdefault(request_id, set()).add(ws)
-
-    def disconnect(self, request_id: UUID, ws: WebSocket) -> None:
-        if request_id in self.active:
-            self.active[request_id].discard(ws)
-
-    async def broadcast(self, request_id: UUID, data: dict) -> None:
-        for ws in list(self.active.get(request_id, [])):
-            try:
-                await ws.send_json(data)
-            except Exception:
-                self.active[request_id].discard(ws)
-
-manager = ConnectionManager()
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def _get_approved_request(
-    request_id: UUID,
-    current_user: UserTable,
-    session: Session,
-) -> RequestTable:
-    """Validate that the request exists, is approved, and user is a party to it."""
+def validate_thread_access(request_id: UUID, user: UserTable, session: Session) -> RequestTable:
+    """Ensures thread is active and user is either the donor or requester."""
     req = session.get(RequestTable, request_id)
-
     if not req:
-        raise HTTPException(status_code=404, detail="Request not found")
-
-    if req.status in ("Completed", "Rejected"):
-        raise HTTPException(status_code=400, detail="Messaging is disabled for Completed or Rejected requests")
+        raise HTTPException(status_code=404, detail="Request thread not found")
 
     if req.status != "Approved":
-        raise HTTPException(status_code=400, detail=f"Messaging is only available once a request is Approved (current status: {req.status})")
-
-    item = session.get(ItemTable, req.item_id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-
-    if current_user.id not in (req.requester_id, item.donor_id):
         raise HTTPException(
-            status_code=403, 
-            detail=f"You are not a party to this message thread. Your ID: {current_user.id}, Requester: {req.requester_id}, Donor: {item.donor_id}"
+            status_code=400, 
+            detail=f"Chat only allowed for Approved requests. Current: {req.status}"
         )
 
+    item = session.get(ItemTable, req.item_id)
+    if user.id not in [req.requester_id, item.donor_id]:
+        raise HTTPException(status_code=403, detail="Not authorized to access this chat")
+    
     return req
 
-def _create_notification(
-    user_id: UUID,
-    message: str,
-    link: str,
-    session: Session,
-) -> None:
-    """Create a notification for a user."""
-    notif = NotificationTable(user_id=user_id, message=message, link=link)
-    session.add(notif)
+def notify_user(user_id: UUID, message: str, link: str, session: Session):
+    """Inserts a notification into the DB for the recipient."""
+    new_notif = NotificationTable(
+        user_id=user_id,
+        message=message,
+        link=link,
+        is_read=False,
+        created_at=datetime.utcnow()
+    )
+    session.add(new_notif)
 
-# ---------------------------------------------------------------------------
-# GET /messages/{request_id}
-# ---------------------------------------------------------------------------
+# --- ENDPOINTS ---
 
 @router.get("/{request_id}", response_model=List[MessageRead])
-def get_messages(
+def fetch_chat_history(
     request_id: UUID,
     session: SessionDep,
-    current_user: UserTable = Depends(get_current_user),
-) -> List[MessageTable]:
-    """Fetch full message history for a request thread"""
-    _get_approved_request(request_id, current_user, session)
-    
-    messages = session.exec(
+    current_user: UserTable = Depends(get_current_user)
+):
+    """Retrieves all past messages for a thread."""
+    validate_thread_access(request_id, current_user, session)
+    return session.exec(
         select(MessageTable)
         .where(MessageTable.request_id == request_id)
         .order_by(MessageTable.created_at)
     ).all()
-    
-    return messages
 
-# ---------------------------------------------------------------------------
-# POST /messages/{request_id}
-# ---------------------------------------------------------------------------
-
-@router.post("/{request_id}", response_model=MessageRead, status_code=201)
-async def send_message(
+@router.post("/{request_id}", response_model=MessageRead)
+async def send_new_message(
     request_id: UUID,
     payload: MessageCreate,
     session: SessionDep,
-    current_user: UserTable = Depends(get_current_user),
-) -> MessageTable:
-    """Send a message in an approved request thread"""
-    req = _get_approved_request(request_id, current_user, session)
+    current_user: UserTable = Depends(get_current_user)
+):
+    """Saves message to DB, broadcasts to WS, and notifies the recipient."""
+    req = validate_thread_access(request_id, current_user, session)
     item = session.get(ItemTable, req.item_id)
 
+    # 1. Create and save message
     msg = MessageTable(
         request_id=request_id,
         sender_id=current_user.id,
         body=payload.body,
+        created_at=datetime.utcnow()
     )
     session.add(msg)
 
-    other_user_id = item.donor_id if current_user.id == req.requester_id else req.requester_id
-    preview = payload.body[:60] + "..." if len(payload.body) > 60 else payload.body
-
-    _create_notification(
-        user_id=other_user_id,
-        message=f"New message: {preview}",
-        link=f"/requests/{request_id}",
-        session=session,
+    # 2. Determine recipient for notification
+    recipient_id = item.donor_id if current_user.id == req.requester_id else req.requester_id
+    preview = (payload.body[:47] + "...") if len(payload.body) > 50 else payload.body
+    
+    notify_user(
+        user_id=recipient_id,
+        message=f"New message regarding {item.name}: {preview}",
+        link=f"/messages/{request_id}",
+        session=session
     )
 
     session.commit()
     session.refresh(msg)
 
-    await manager.broadcast(
-        request_id,
-        {
-            "id": str(msg.id),
-            "request_id": str(msg.request_id),
-            "sender_id": str(msg.sender_id),
-            "body": msg.body,
-            "created_at": msg.created_at.isoformat(),
-        },
-    )
+    # 3. Broadcast to any active WebSocket listeners
+    await manager.broadcast(request_id, {
+        "id": str(msg.id),
+        "request_id": str(msg.request_id),
+        "sender_id": str(msg.sender_id),
+        "body": msg.body,
+        "created_at": msg.created_at.isoformat()
+    })
 
     return msg
 
-# ---------------------------------------------------------------------------
-# WS /messages/{request_id}/ws
-# ---------------------------------------------------------------------------
-
 @router.websocket("/{request_id}/ws")
-async def websocket_messages(
+async def chat_socket_endpoint(
     request_id: UUID,
-    ws: WebSocket,
+    websocket: WebSocket,
     token: str = Query(...)
-) -> None:
-    """Real-time WebSocket connection for messaging"""
-    # Create a session for WebSocket (can't use Depends with WebSocket)
+):
+    """WebSocket bridge for real-time UI updates."""
     with Session(engine) as session:
-        # Authenticate the WebSocket connection
-        user = get_user_ws(token, session)
-
-        # Validate that the user actually has access to this thread
         try:
-            _get_approved_request(request_id, user, session)
-        except HTTPException:
-            await ws.close(code=status.WS_1008_POLICY_VIOLATION)
+            user = get_user_from_ws_token(token, session)
+            validate_thread_access(request_id, user, session)
+        except (WebSocketException, HTTPException):
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
 
-        await manager.connect(request_id, ws)
+        await manager.connect(request_id, websocket)
         try:
             while True:
-                await ws.receive_text()
+                # We mainly use WS to push data TO the client.
+                # Client sends data via the POST endpoint for better validation/logic.
+                await websocket.receive_text() 
         except WebSocketDisconnect:
-            manager.disconnect(request_id, ws)
+            manager.disconnect(request_id, websocket)

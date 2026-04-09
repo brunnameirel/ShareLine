@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 
+const API = import.meta.env.VITE_API_URL;
+
 /**
  * useMessages — loads history from FastAPI, then subscribes to
- * Supabase Realtime broadcast for live updates.
+ * Supabase Realtime postgres_changes for live updates.
  *
  * @param {string|null} requestId  — the request UUID to subscribe to
  * @param {string|null} authToken  — the Supabase JWT for FastAPI calls
@@ -25,7 +27,7 @@ export function useMessages(requestId, authToken) {
     setError(null);
     setMessages([]);
 
-    fetch(`${import.meta.env.VITE_API_URL}/messages/${requestId}`, {
+    fetch(`${API}/messages/${requestId}`, {
       headers: { Authorization: `Bearer ${authToken}` },
     })
       .then((r) => {
@@ -38,29 +40,34 @@ export function useMessages(requestId, authToken) {
   }, [requestId, authToken]);
 
   // ------------------------------------------------------------------
-  // 2. Subscribe to Supabase Realtime broadcast for live messages
+  // 2. Subscribe to Supabase Realtime postgres_changes
   // ------------------------------------------------------------------
   useEffect(() => {
     if (!requestId) return;
 
-    // Clean up any previous channel
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
     }
 
     const channel = supabase
-      .channel(`request:${requestId}`, {
-        config: { private: true },
-      })
-      .on('broadcast', { event: 'INSERT' }, (payload) => {
-        const newMsg = payload?.payload?.new;
-        if (!newMsg) return;
-        setMessages((prev) => {
-          // Deduplicate in case history fetch and broadcast overlap
-          if (prev.some((m) => m.id === newMsg.id)) return prev;
-          return [...prev, newMsg];
-        });
-      })
+      .channel(`messages:${requestId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'message',
+          filter: `request_id=eq.${requestId}`,
+        },
+        (payload) => {
+          const newMsg = payload.new;
+          if (!newMsg) return;
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
+            return [...prev, newMsg];
+          });
+        }
+      )
       .subscribe();
 
     channelRef.current = channel;
@@ -72,7 +79,8 @@ export function useMessages(requestId, authToken) {
   }, [requestId]);
 
   // ------------------------------------------------------------------
-  // 3. Send a message via FastAPI (DB insert → triggers broadcast)
+  // 3. Send a message via FastAPI — append locally immediately so the
+  //    sender sees it without waiting for the realtime event.
   // ------------------------------------------------------------------
   const sendMessage = useCallback(
     async (body) => {
@@ -80,19 +88,21 @@ export function useMessages(requestId, authToken) {
 
       setSending(true);
       try {
-        const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/messages/${requestId}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${authToken}`,
-            },
-            body: JSON.stringify({ body: body.trim() }),
-          }
-        );
+        const res = await fetch(`${API}/messages/${requestId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({ body: body.trim() }),
+        });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        // Don't append locally — Realtime broadcast will deliver it
+        const saved = await res.json();
+        // Add locally — realtime dedup will ignore it when it arrives
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === saved.id)) return prev;
+          return [...prev, saved];
+        });
       } catch (err) {
         setError(err.message);
       } finally {

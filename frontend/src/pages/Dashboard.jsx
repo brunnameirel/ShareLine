@@ -329,7 +329,7 @@ export default function Dashboard() {
             <Box sx={{ backgroundColor: '#fff', border: '1px solid #f0e0cc', borderRadius: 3, p: 3 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
                 <Typography sx={{ fontWeight: 700, color: '#3d2c1e', fontSize: '1rem' }}>My Donations</Typography>
-                <Button size="small" endIcon={<ArrowForward sx={{ fontSize: 14 }} />}
+                <Button size="small" component={Link} to="/my-donations" endIcon={<ArrowForward sx={{ fontSize: 14 }} />}
                   sx={{ textTransform: 'none', color: '#B53324', fontWeight: 600, fontSize: '0.8rem' }}>
                   View all
                 </Button>

@@ -7,6 +7,10 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AuthCallback from './pages/AuthCallback';
 import Onboarding from './pages/Onboarding';
 import MessagesPage from './pages/MessagesPage';
+import Donate from './pages/Donate';
+import Browse from './pages/Browse';
+import Profile from './pages/Profile';
+import MyDonations from './pages/MyDonations';
 
 function App() {
   return (
@@ -26,6 +30,38 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-donations"
+          element={
+            <ProtectedRoute>
+              <MyDonations />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/browse"
+          element={
+            <ProtectedRoute>
+              <Browse />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/donate"
+          element={
+            <ProtectedRoute>
+              <Donate />
             </ProtectedRoute>
           }
         />

@@ -72,29 +72,37 @@ export default function Register() {
 
       if (authError) throw authError;
 
+      // If session is available (email confirmation disabled), create the DB profile now.
+      // If session is null (email confirmation required), the name/roles are already stored
+      // in auth metadata above and AuthCallback will create the profile after confirmation.
       const token = data.session?.access_token;
       if (token) {
+        // Create the user row via FastAPI (bypasses RLS)
         const res = await fetch('http://localhost:8000/auth/profile', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            email,
-            name,
-            is_donor: isDonor,
-            is_requester: isRequester,
-          }),
+          body: JSON.stringify({ email, name, is_donor: isDonor, is_requester: isRequester }),
         });
 
         if (!res.ok) {
           const detail = await res.json();
           throw new Error(detail.detail || 'Failed to create profile');
         }
-      }
 
-      navigate('/login');
+        // Also save name to profiles table (where the DB actually stores it)
+        await supabase
+          .from('profiles')
+          .upsert({ id: data.user.id, email, name }, { onConflict: 'id' });
+
+        navigate('/dashboard');
+      } else {
+        // Email confirmation required — name/roles stored in auth metadata,
+        // will be saved to profiles on first login via AuthCallback
+        navigate('/login');
+      }
     } catch (err) {
       setError(err.message || 'Registration failed');
     } finally {

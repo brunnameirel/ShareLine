@@ -32,19 +32,54 @@ export default function AuthCallback() {
 
         console.log('Session found:', session);
 
+        // Check if a DB profile already exists via FastAPI (bypasses RLS)
         const res = await fetch('http://localhost:8000/auth/me', {
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
 
-        console.log('Profile response status:', res.status);
-
         if (res.ok) {
-          navigate('/dashboard');
+          const userData = await res.json();
+          // If neither role is set the user row was auto-created (DB trigger) but
+          // onboarding was never completed — send them there to pick roles + name.
+          if (!userData.is_donor && !userData.is_requester) {
+            navigate('/onboarding');
+          } else {
+            navigate('/dashboard');
+          }
         } else if (res.status === 404) {
+          const meta = session.user.user_metadata;
+          // Only auto-create if roles were explicitly set — this means it's an email-signup
+          // user returning after email confirmation. Google OAuth users have meta.name from
+          // Google but never have is_donor/is_requester, so they always go to onboarding.
+          const hasRoles = meta?.is_donor !== undefined || meta?.is_requester !== undefined;
+          if (meta?.name && hasRoles) {
+            const createRes = await fetch('http://localhost:8000/auth/profile', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({
+                email: session.user.email,
+                name: meta.name,
+                is_donor: meta.is_donor || false,
+                is_requester: meta.is_requester || false,
+              }),
+            });
+
+            if (createRes.ok) {
+              await supabase
+                .from('profiles')
+                .upsert(
+                  { id: session.user.id, email: session.user.email, name: meta.name },
+                  { onConflict: 'id' }
+                );
+              navigate('/dashboard');
+              return;
+            }
+          }
           navigate('/onboarding');
         } else {
-          const text = await res.text();
-          console.log('Profile response body:', text);
           navigate('/onboarding');
         }
       } catch (err) {

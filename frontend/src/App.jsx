@@ -7,6 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AuthCallback from './pages/AuthCallback';
 import Onboarding from './pages/Onboarding';
 import MessagesPage from './pages/MessagesPage';
+import Donate from './pages/Donate';
 
 function App() {
   return (
@@ -26,6 +27,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/donate"
+          element={
+            <ProtectedRoute>
+              <Donate />
             </ProtectedRoute>
           }
         />

@@ -9,8 +9,8 @@ Endpoints:
 from typing import List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 from sqlmodel import select
 
 from db import SessionDep
@@ -18,6 +18,20 @@ from models import ItemTable, RequestTable, UserTable
 from routers.auth import get_current_user
 
 router = APIRouter(prefix="/requests", tags=["requests"])
+
+
+class RequestCreate(BaseModel):
+    item_id: UUID
+    requested_quantity: int = Field(..., ge=1)
+
+
+class RequestSimpleRead(BaseModel):
+    id: UUID
+    item_id: UUID
+    status: str
+
+    class Config:
+        from_attributes = True
 
 
 class RequestRead(BaseModel):
@@ -30,6 +44,43 @@ class RequestRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+@router.post("", response_model=RequestSimpleRead, status_code=201)
+def create_request(
+    session: SessionDep,
+    payload: RequestCreate,
+    current_user: UserTable = Depends(get_current_user),
+):
+    item = session.get(ItemTable, payload.item_id)
+    if not item:
+        raise HTTPException(404, "Item not found")
+    if item.status != "Available":
+        raise HTTPException(400, "Item is no longer available")
+    if item.donor_id == current_user.id:
+        raise HTTPException(400, "You cannot request your own item")
+    if payload.requested_quantity > item.quantity:
+        raise HTTPException(400, f"Only {item.quantity} available")
+
+    # Prevent duplicate pending requests
+    existing = session.exec(
+        select(RequestTable)
+        .where(RequestTable.item_id == payload.item_id)
+        .where(RequestTable.requester_id == current_user.id)
+        .where(RequestTable.status == "Pending")
+    ).first()
+    if existing:
+        raise HTTPException(400, "You already have a pending request for this item")
+
+    req = RequestTable(
+        requester_id=current_user.id,
+        item_id=payload.item_id,
+        requested_quantity=payload.requested_quantity,
+    )
+    session.add(req)
+    session.commit()
+    session.refresh(req)
+    return req
 
 
 @router.get("", response_model=List[RequestRead])

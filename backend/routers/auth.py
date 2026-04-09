@@ -100,20 +100,31 @@ def create_profile(
     if supabase_uid is None:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+    # Upsert: update if the row already exists (e.g. created by a DB trigger),
+    # otherwise insert fresh.
+    existing = session.exec(
+        select(UserTable).where(UserTable.supabase_id == supabase_uid)
+    ).first()
+
+    if existing:
+        existing.name = data.name
+        existing.is_donor = data.is_donor or False
+        existing.is_requester = data.is_requester or False
+        session.add(existing)
+        session.commit()
+        session.refresh(existing)
+        return existing
+
     new_user = UserTable(
         supabase_id=supabase_uid,
-        # might change later
         email=payload.get("email", ""),
-        # might change later
         name=data.name,
         is_donor=data.is_donor or False,
         is_requester=data.is_requester or False,
     )
-
     session.add(new_user)
     session.commit()
     session.refresh(new_user)
-
     return new_user
 
 

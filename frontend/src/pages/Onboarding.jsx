@@ -57,6 +57,7 @@ export default function Onboarding() {
     setLoading(true);
 
     try {
+      // Create the user row via FastAPI (bypasses RLS)
       const res = await fetch('http://localhost:8000/auth/profile', {
         method: 'POST',
         headers: {
@@ -76,13 +77,17 @@ export default function Onboarding() {
         throw new Error(detail.detail || 'Failed to create profile');
       }
 
-      // Also update Supabase user metadata with the name + roles
+      // Also save name to profiles table (where the DB actually stores it)
+      await supabase
+        .from('profiles')
+        .upsert(
+          { id: session.user.id, email: session.user.email, name: name.trim() },
+          { onConflict: 'id' }
+        );
+
+      // Keep auth metadata in sync
       await supabase.auth.updateUser({
-        data: {
-          name: name.trim(),
-          is_donor: isDonor,
-          is_requester: isRequester,
-        },
+        data: { name: name.trim(), is_donor: isDonor, is_requester: isRequester },
       });
 
       navigate('/dashboard');

@@ -32,7 +32,7 @@ export default function AuthCallback() {
 
         console.log('Session found:', session);
 
-        const res = await fetch('http://localhost:8000/auth/profile', {
+        const res = await fetch('http://localhost:8000/auth/me', {
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
 

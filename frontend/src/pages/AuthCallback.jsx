@@ -11,34 +11,44 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Supabase automatically picks up the tokens/code from the URL
+        console.log('Callback URL:', window.location.href);
+        console.log('Hash:', window.location.hash);
+        console.log('Search:', window.location.search);
+
+        const sessionResult = await supabase.auth.getSession();
+        console.log('getSession result:', sessionResult);
+
         const {
           data: { session },
           error,
-        } = await supabase.auth.getSession();
+        } = sessionResult;
 
         if (error || !session) {
+          console.log('No session or session error:', error);
           setStatus('Sign-in failed. Redirecting…');
           setTimeout(() => navigate('/login'), 2000);
           return;
         }
 
-        // Check if the user already has a backend profile
+        console.log('Session found:', session);
+
         const res = await fetch('http://localhost:8000/auth/profile', {
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
 
+        console.log('Profile response status:', res.status);
+
         if (res.ok) {
-          // Profile exists — go straight to dashboard
           navigate('/dashboard');
         } else if (res.status === 404) {
-          // No profile yet — send to onboarding to pick roles
           navigate('/onboarding');
         } else {
-          // Some other error — try onboarding anyway
+          const text = await res.text();
+          console.log('Profile response body:', text);
           navigate('/onboarding');
         }
-      } catch {
+      } catch (err) {
+        console.error('Callback crash:', err);
         setStatus('Something went wrong. Redirecting…');
         setTimeout(() => navigate('/login'), 2000);
       }
@@ -72,7 +82,9 @@ export default function AuthCallback() {
       >
         <VolunteerActivism sx={{ color: '#F5E2CE', fontSize: 30 }} />
       </Box>
+
       <CircularProgress size={28} sx={{ color: '#B53324' }} />
+
       <Typography variant="body2" sx={{ color: '#8a6d4b' }}>
         {status}
       </Typography>

@@ -28,6 +28,19 @@ export default function Register() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const handleOAuthSignUp = async () => {
+    setError('');
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    if (oauthError) {
+      setError(oauthError.message || 'Failed to sign up with Google');
+    }
+  };
+
   const handleRegister = async (e) => {
     e.preventDefault();
     setError('');
@@ -89,6 +102,14 @@ export default function Register() {
     }
   };
 
+  const inputSx = {
+    mb: 2.5,
+    '& .MuiOutlinedInput-root': {
+      '&.Mui-focused fieldset': { borderColor: '#B53324' },
+    },
+    '& .MuiInputLabel-root.Mui-focused': { color: '#B53324' },
+  };
+
   return (
     <Box
       sx={{
@@ -96,6 +117,7 @@ export default function Register() {
         background: 'linear-gradient(145deg, #F5E2CE 0%, #DFBC94 50%, #F5E2CE 100%)',
       }}
     >
+      {/* Navbar */}
       <Box
         sx={{
           display: 'flex',
@@ -158,6 +180,7 @@ export default function Register() {
         </Box>
       </Box>
 
+      {/* Card */}
       <Box
         sx={{
           display: 'flex',
@@ -179,7 +202,7 @@ export default function Register() {
           }}
         >
           <CardContent sx={{ p: 5 }}>
-            {/* Logo / Branding */}
+            {/* Branding */}
             <Box sx={{ textAlign: 'center', mb: 4 }}>
               <Box
                 sx={{
@@ -203,7 +226,7 @@ export default function Register() {
               </Typography>
             </Box>
 
-            {/* Error Alert */}
+            {/* Error */}
             {error && (
               <Alert
                 severity="error"
@@ -218,7 +241,64 @@ export default function Register() {
               </Alert>
             )}
 
-            {/* Form */}
+            {/* Google OAuth */}
+            <Button
+              fullWidth
+              onClick={handleOAuthSignUp}
+              sx={{
+                py: 1.4,
+                mb: 3,
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 600,
+                fontSize: '0.95rem',
+                color: '#3c2a14',
+                backgroundColor: '#faf6f0',
+                border: '1px solid #DFBC94',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 1.5,
+                '&:hover': {
+                  backgroundColor: '#f3ebe0',
+                  borderColor: '#c9a56c',
+                },
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 48 48">
+                <path
+                  fill="#EA4335"
+                  d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+                />
+                <path
+                  fill="#4285F4"
+                  d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.01 24.01 0 0 0 0 21.56l7.98-6.19z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+                />
+              </svg>
+              Continue with Google
+            </Button>
+
+            {/* Divider — hand-built so the font matches */}
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+              <Box sx={{ flex: 1, height: '1px', backgroundColor: '#DFBC94' }} />
+              <Typography
+                variant="body2"
+                sx={{ px: 2, color: '#8a6d4b', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+              >
+                or register with email
+              </Typography>
+              <Box sx={{ flex: 1, height: '1px', backgroundColor: '#DFBC94' }} />
+            </Box>
+
+            {/* Email Form */}
             <Box component="form" onSubmit={handleRegister}>
               <TextField
                 label="Full Name"
@@ -226,13 +306,7 @@ export default function Register() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                sx={{
-                  mb: 2.5,
-                  '& .MuiOutlinedInput-root': {
-                    '&.Mui-focused fieldset': { borderColor: '#B53324' },
-                  },
-                  '& .MuiInputLabel-root.Mui-focused': { color: '#B53324' },
-                }}
+                sx={inputSx}
                 size="medium"
               />
 
@@ -243,13 +317,7 @@ export default function Register() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                sx={{
-                  mb: 2.5,
-                  '& .MuiOutlinedInput-root': {
-                    '&.Mui-focused fieldset': { borderColor: '#B53324' },
-                  },
-                  '& .MuiInputLabel-root.Mui-focused': { color: '#B53324' },
-                }}
+                sx={inputSx}
                 size="medium"
               />
 
@@ -261,13 +329,7 @@ export default function Register() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 helperText="Must be at least 8 characters"
-                sx={{
-                  mb: 3,
-                  '& .MuiOutlinedInput-root': {
-                    '&.Mui-focused fieldset': { borderColor: '#B53324' },
-                  },
-                  '& .MuiInputLabel-root.Mui-focused': { color: '#B53324' },
-                }}
+                sx={{ ...inputSx, mb: 3 }}
                 size="medium"
                 InputProps={{
                   endAdornment: (
@@ -280,7 +342,7 @@ export default function Register() {
                 }}
               />
 
-              {/* Role Selection */}
+              {/* Roles */}
               <Typography variant="body2" sx={{ color: '#8a6d4b', mb: 0.5 }}>
                 I want to… (select at least one)
               </Typography>
@@ -290,9 +352,7 @@ export default function Register() {
                     <Checkbox
                       checked={isDonor}
                       onChange={(e) => setIsDonor(e.target.checked)}
-                      sx={{
-                        '&.Mui-checked': { color: '#B53324' },
-                      }}
+                      sx={{ '&.Mui-checked': { color: '#B53324' } }}
                     />
                   }
                   label={
@@ -306,9 +366,7 @@ export default function Register() {
                     <Checkbox
                       checked={isRequester}
                       onChange={(e) => setIsRequester(e.target.checked)}
-                      sx={{
-                        '&.Mui-checked': { color: '#E5A657' },
-                      }}
+                      sx={{ '&.Mui-checked': { color: '#E5A657' } }}
                     />
                   }
                   label={

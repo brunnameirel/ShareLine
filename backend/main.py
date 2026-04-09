@@ -11,13 +11,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from db import create_db_and_tables
 from routers.messages import router as messages_router
 from routers.auth import router as auth_router
+from routers.requests import router as requests_router
 
 # ---------------------------------------------------------------------------
 # TODO: as teammates finish their routers, add them here like this:
 #   from routers.auth import router as auth_router         (Brunna)
 from routers.items import router as items_router      
 #   from routers.requests import router as requests_router (Arushi)
-from routers.notifications import router as notifications_router 
+from routers.notifications import router as notifications_router
 # ---------------------------------------------------------------------------
 
 @asynccontextmanager
@@ -53,7 +54,7 @@ app.include_router(messages_router)
 # TODO: uncomment as teammates finish their routers
 app.include_router(auth_router)
 app.include_router(items_router)
-# app.include_router(requests_router)
+app.include_router(requests_router)
 app.include_router(notifications_router)
 
 @app.get("/")

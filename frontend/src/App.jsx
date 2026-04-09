@@ -10,6 +10,7 @@ import MessagesPage from './pages/MessagesPage';
 import Donate from './pages/Donate';
 import Browse from './pages/Browse';
 import Profile from './pages/Profile';
+import MyDonations from './pages/MyDonations';
 
 function App() {
   return (
@@ -29,6 +30,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-donations"
+          element={
+            <ProtectedRoute>
+              <MyDonations />
             </ProtectedRoute>
           }
         />

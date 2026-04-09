@@ -83,6 +83,54 @@ def create_request(
     return req
 
 
+class RequestUpdate(BaseModel):
+    status: str  # Approved | Rejected
+
+
+@router.patch("/{request_id}", response_model=RequestSimpleRead)
+def update_request(
+    request_id: UUID,
+    payload: RequestUpdate,
+    session: SessionDep,
+    current_user: UserTable = Depends(get_current_user),
+):
+    if payload.status not in ("Approved", "Rejected"):
+        raise HTTPException(400, "status must be Approved or Rejected")
+
+    req = session.get(RequestTable, request_id)
+    if not req:
+        raise HTTPException(404, "Request not found")
+
+    item = session.get(ItemTable, req.item_id)
+    if not item:
+        raise HTTPException(404, "Item not found")
+
+    if item.donor_id != current_user.id:
+        raise HTTPException(403, "Only the donor can approve or reject requests")
+
+    req.status = payload.status
+    session.add(req)
+
+    if payload.status == "Approved":
+        # Mark item as Reserved
+        item.status = "Reserved"
+        session.add(item)
+        # Reject all other pending requests for this item
+        others = session.exec(
+            select(RequestTable)
+            .where(RequestTable.item_id == item.id)
+            .where(RequestTable.id != request_id)
+            .where(RequestTable.status == "Pending")
+        ).all()
+        for other in others:
+            other.status = "Rejected"
+            session.add(other)
+
+    session.commit()
+    session.refresh(req)
+    return req
+
+
 @router.get("", response_model=List[RequestRead])
 def list_requests(
     session: SessionDep,

@@ -7,7 +7,7 @@ Endpoints:
     GET  /items/{item_id}    — fetch a single item
 """
 
-from typing import Optional, List
+from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -106,6 +106,53 @@ def create_item(
     session.commit()
     session.refresh(item)
     return item
+
+
+class RequestOnItem(BaseModel):
+    id: UUID
+    requester_id: UUID
+    requester_name: str
+    requested_quantity: int
+    status: str
+
+
+class ItemWithRequests(ItemRead):
+    donor_name: str
+    requests: List[RequestOnItem]
+
+
+@router.get("/mine", response_model=List[ItemWithRequests])
+def get_my_items(
+    session: SessionDep,
+    current_user: UserTable = Depends(get_current_user),
+):
+    """Return all items listed by the current user, with their requests."""
+    from models import RequestTable
+    items = session.exec(
+        select(ItemTable).where(ItemTable.donor_id == current_user.id)
+    ).all()
+
+    results = []
+    for item in items:
+        reqs = session.exec(
+            select(RequestTable).where(RequestTable.item_id == item.id)
+        ).all()
+        enriched_reqs = []
+        for req in reqs:
+            requester = session.get(UserTable, req.requester_id)
+            enriched_reqs.append(RequestOnItem(
+                id=req.id,
+                requester_id=req.requester_id,
+                requester_name=requester.name if requester else "User",
+                requested_quantity=req.requested_quantity,
+                status=req.status,
+            ))
+        results.append(ItemWithRequests(
+            **item.model_dump(),
+            donor_name=current_user.name,
+            requests=enriched_reqs,
+        ))
+    return results
 
 
 @router.get("/{item_id}", response_model=ItemRead)

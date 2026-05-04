@@ -1,223 +1,167 @@
+"""
+Items router — ShareLine
 
+Endpoints:
+    GET  /items              — list available items (browse)
+    POST /items              — create a new item listing
+    GET  /items/{item_id}    — fetch a single item
+"""
 
-from typing import Optional, List
-
-from fastapi import APIRouter, HTTPException, Request, Depends
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
-from sqlmodel import select
+from typing import List, Optional
 from uuid import UUID
 
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
+from sqlmodel import select
+
 from db import SessionDep
-# prevents collision with Request from fastapi
-from models import ItemTable, UserTable, RequestTable
-from schemas import ItemCreate
-from .auth import get_current_user, require_donor, require_requester
+from models import ItemTable, UserTable
+from routers.auth import get_current_user
 
-router = APIRouter(tags=["items"])
+router = APIRouter(prefix="/items", tags=["items"])
 
-templates = Jinja2Templates(directory="templates")
+VALID_CATEGORIES = {"Clothing", "Textbooks", "Electronics", "Bedding", "Other"}
+VALID_CONDITIONS = {"New", "Like New", "Good", "Fair"}
 
 
-@router.post("/", response_model=ItemTable)
-def create_item(item_in: ItemCreate, session: SessionDep):
-    """
-    Create a new item batch for a donor.
-    If an identical batch already exists, increase its quantity instead.
-    """
+class ItemCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    category: str
+    description: str = Field(..., min_length=1, max_length=500)
+    condition: str
+    quantity: int = Field(..., ge=1, le=99)
+    location: str = Field(..., min_length=1, max_length=200)
 
-    # 1) Check user or admin exists
-    donor = session.get(UserTable, item_in.donor_id)
-    if donor is None or not donor.is_donor:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid user ID or user is not a donor",
-        )
 
-    # 2) Check if a similar item already exists (same donor, name, category, location, description, condition)
-    query = select(ItemTable).where(
-        ItemTable.donor_id == item_in.donor_id,
-        ItemTable.name == item_in.name,
-        ItemTable.category == item_in.category,
-        ItemTable.location == item_in.location,
-        ItemTable.description == item_in.description,
-        ItemTable.condition == item_in.condition,
-    )
-    existing = session.exec(query).first()
+class ItemRead(BaseModel):
+    id: UUID
+    donor_id: UUID
+    name: str
+    category: str
+    description: str
+    condition: str
+    quantity: int
+    location: str
+    status: str
 
-    # 3) If found, just bump quantity
-    if existing:
-        existing.quantity += item_in.quantity
+    class Config:
+        from_attributes = True
 
-        # If it was "Completed" and now has stock, make it "Available"
-        if existing.quantity > 0 and existing.status == "Completed":
-            existing.status = "Available"
 
-        session.add(existing)
-        session.commit()
-        session.refresh(existing)
-        return existing
+class ItemListRead(ItemRead):
+    donor_name: str
 
-    # 4) Otherwise create a brand new item
+
+@router.get("", response_model=List[ItemListRead])
+def list_items(
+    session: SessionDep,
+    category: Optional[str] = Query(None),
+    condition: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    current_user: UserTable = Depends(get_current_user),
+):
+    """List all available items, excluding the current user's own listings."""
+    stmt = select(ItemTable).where(ItemTable.status == "Available")
+    if category:
+        stmt = stmt.where(ItemTable.category == category)
+    if condition:
+        stmt = stmt.where(ItemTable.condition == condition)
+
+    items = session.exec(stmt).all()
+
+    results = []
+    for item in items:
+        if search and search.lower() not in item.name.lower() and search.lower() not in item.description.lower():
+            continue
+        donor = session.get(UserTable, item.donor_id)
+        results.append(ItemListRead(
+            **item.model_dump(),
+            donor_name=donor.name if donor else "Anonymous",
+        ))
+
+    return results
+
+
+@router.post("", response_model=ItemRead, status_code=201)
+def create_item(
+    session: SessionDep,
+    payload: ItemCreate,
+    current_user: UserTable = Depends(get_current_user),
+):
+    if payload.category not in VALID_CATEGORIES:
+        raise HTTPException(400, f"Invalid category. Choose from: {', '.join(VALID_CATEGORIES)}")
+    if payload.condition not in VALID_CONDITIONS:
+        raise HTTPException(400, f"Invalid condition. Choose from: {', '.join(VALID_CONDITIONS)}")
+
     item = ItemTable(
-        donor_id=item_in.donor_id,
-        name=item_in.name,
-        category=item_in.category,
-        quantity=item_in.quantity,
-        description=item_in.description,
-        location=item_in.location,
-        status="Available",
-        condition=item_in.condition,
-        photo_urls=item_in.photo_urls,
+        donor_id=current_user.id,
+        name=payload.name,
+        category=payload.category,
+        description=payload.description,
+        condition=payload.condition,
+        quantity=payload.quantity,
+        location=payload.location,
     )
-
     session.add(item)
     session.commit()
     session.refresh(item)
     return item
 
 
-@router.get("/", response_model=List[ItemTable])
-def list_items(
+class RequestOnItem(BaseModel):
+    id: UUID
+    requester_id: UUID
+    requester_name: str
+    requested_quantity: int
+    status: str
+
+
+class ItemWithRequests(ItemRead):
+    donor_name: str
+    requests: List[RequestOnItem]
+
+
+@router.get("/mine", response_model=List[ItemWithRequests])
+def get_my_items(
     session: SessionDep,
-    category: Optional[str] = None,
-    location: Optional[str] = None,
-    status: Optional[str] = None,
-    min_quantity: Optional[int] = None,
+    current_user: UserTable = Depends(get_current_user),
 ):
-    """
-    List items, optionally filtered by category, location, status, and min_quantity.
-    """
-    query = select(ItemTable)
+    """Return all items listed by the current user, with their requests."""
+    from models import RequestTable
+    items = session.exec(
+        select(ItemTable).where(ItemTable.donor_id == current_user.id)
+    ).all()
 
-    if category is not None:
-        query = query.where(ItemTable.category == category)
-
-    if location is not None:
-        query = query.where(ItemTable.location == location)
-
-    if status is not None:
-        query = query.where(ItemTable.status == status)
-
-    if min_quantity is not None:
-        query = query.where(ItemTable.quantity >= min_quantity)
-
-    results = session.exec(query).all()
+    results = []
+    for item in items:
+        reqs = session.exec(
+            select(RequestTable).where(RequestTable.item_id == item.id)
+        ).all()
+        enriched_reqs = []
+        for req in reqs:
+            requester = session.get(UserTable, req.requester_id)
+            enriched_reqs.append(RequestOnItem(
+                id=req.id,
+                requester_id=req.requester_id,
+                requester_name=requester.name if requester else "User",
+                requested_quantity=req.requested_quantity,
+                status=req.status,
+            ))
+        results.append(ItemWithRequests(
+            **item.model_dump(),
+            donor_name=current_user.name,
+            requests=enriched_reqs,
+        ))
     return results
 
 
-@router.delete("/{item_id}")
-def delete_item(
+@router.get("/{item_id}", response_model=ItemRead)
+def get_item(
     item_id: UUID,
     session: SessionDep,
-    user: UserTable = Depends(require_donor),
+    current_user: UserTable = Depends(get_current_user),
 ):
-
     item = session.get(ItemTable, item_id)
-    if item is None:
-        raise HTTPException(status_code=404, detail="Item not found")
-
-    # Donors can only delete their own items
-    if item.donor_id != user.id:
-        raise HTTPException(
-            status_code=403,
-            detail="You can only delete items you donated.",
-        )
-
-    if item.status == "Completed":
-        raise HTTPException(
-            status_code=400,
-            detail="Completed items cannot be deleted.",
-        )
-
-    # If you also want to clean up old non-pending requests, you *can* do:
-    old_requests = session.exec(select(RequestTable).where(RequestTable.item_id == item_id)).all()
-    for r in old_requests:
-        session.delete(r)
-
-    session.delete(item)
-    session.commit()
-    return {"detail": "Item deleted successfully"}
-
-@router.get("/my", response_class=HTMLResponse)
-def my_items_page(
-    request: Request, 
-    session: SessionDep, 
-    user: UserTable = Depends(require_donor)
-):
-    
-    items = session.exec(
-        select(ItemTable).where(ItemTable.donor_id == user.id)
-    ).all()
-
-    return templates.TemplateResponse(
-        "items_my.html",
-        {"request": request, "current_user": user, "items": items},
-    )
-
-@router.post("/new")
-async def create_item_from_form(
-    request: Request, 
-    session: SessionDep, 
-    user: UserTable = Depends(require_donor)
-):
-
-    form = await request.form() # type: ignore
-
-    name = form.get("name")
-    category = form.get("category")
-    quantity_raw = form.get("quantity")
-    description = form.get("description")
-    location = form.get("location")
-    condition = form.get("condition")
-    photo_urls = form.get("photo_urls")  # Optional, comma-separated URLs
-
-    if not all([name, category, quantity_raw, description, location, condition]):
-        raise HTTPException(status_code=400, detail="All fields required")
-
-    try:
-        quantity = int(str(quantity_raw).strip())
-    except (TypeError, ValueError):
-        raise HTTPException(status_code=400, detail="Quantity must be a whole number")
-
-    if quantity <= 0:
-        raise HTTPException(status_code=400, detail="Quantity must be greater than 0")
-
-    item_in = ItemCreate(
-        donor_id=user.id,
-        name=name,
-        category=category,
-        quantity=quantity,
-        description=description,
-        location=location,
-        condition=condition,
-        photo_urls=photo_urls,
-    )
-
-    create_item(item_in=item_in, session=session)
-
-    return RedirectResponse(url="/items/my", status_code=303)
-
-@router.get("/new", response_class=HTMLResponse)
-def new_item_page(
-    request: Request, 
-    user: UserTable = Depends(require_donor)
-):
-
-    return templates.TemplateResponse(
-        "items_new.html",
-        {
-            "request": request,
-            "current_user": user,
-        },
-    )
-    
-@router.get("/{item_id}", response_model=ItemTable)
-def get_item(item_id: UUID, session: SessionDep):
-    """
-    Get a single item by ID.
-    """
-    item = session.get(ItemTable, item_id)
-    if item is None:
-        raise HTTPException(status_code=404, detail="Item not found")
+    if not item:
+        raise HTTPException(404, "Item not found")
     return item

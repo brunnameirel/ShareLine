@@ -378,18 +378,64 @@ export default function Donate() {
 
           <Divider />
 
-          <TextField
-            type="file"
-            fullWidth
-            inputProps={{ accept: 'image/*' }}
-            onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-            sx={{ ...fieldSx, mt: 3 }}
-          />
+          {/* ── Section 3: Photo ── */}
+          <Section label="Add a photo" step="3">
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Button
+                component="label"
+                sx={{
+                  alignSelf: 'flex-start',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  border: `1px solid ${brand.tan}`,
+                  color: brand.muted,
+                  backgroundColor: '#faf8f5',
+                  px: 2.5,
+                  py: 1,
+                  '&:hover': {
+                    borderColor: brand.red,
+                    color: brand.red,
+                    backgroundColor: '#fef2f0',
+                  },
+                }}
+              >
+                Choose image
+                <input
+                  hidden
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                />
+              </Button>
 
+              {selectedFile && (
+                <Typography sx={{ fontSize: 13, color: brand.muted }}>
+                  Selected: <strong>{selectedFile.name}</strong>
+                </Typography>
+              )}
+
+              {selectedFile && (
+                <Box
+                  component="img"
+                  src={URL.createObjectURL(selectedFile)}
+                  alt="Selected item preview"
+                  sx={{
+                    width: '100%',
+                    maxHeight: 220,
+                    objectFit: 'cover',
+                    borderRadius: 2,
+                    border: `1px solid ${brand.tan}`,
+                  }}
+                />
+              )}
+            </Box>
+          </Section>
+          
           <Divider />
 
-          {/* ── Section 3: Pickup ── */}
-          <Section label="Where can it be picked up?" step="3">
+          {/* ── Section 4: Pickup ── */}
+          <Section label="Where can it be picked up?" step="4">
             <TextField
               label="Location"
               fullWidth

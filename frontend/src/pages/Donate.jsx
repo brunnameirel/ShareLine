@@ -110,6 +110,7 @@ export default function Donate() {
     try {
 
       let photoKey = null;
+      // If user selected a photo, get presigned URL to upload photo to s3
       if (selectedFile) {
         const uploadUrlRes = await fetch(`${API}/uploads/presigned-url`, {
           method: 'POST',
@@ -123,13 +124,16 @@ export default function Donate() {
           }),
         });
 
+        // Checks if presigned URL request was successful
         if (!uploadUrlRes.ok) {
           const err = await uploadUrlRes.json();
           throw new Error(err.detail || `Upload URL failed: HTTP ${uploadUrlRes.status}`);
         }
 
+        // Extract upload URL and object key from response
         const { upload_url, object_key } = await uploadUrlRes.json();
 
+        // Upload photo directly to S3 using the presigned URL
         const s3Res = await fetch(upload_url, {
           method: 'PUT',
           headers: {
@@ -138,10 +142,12 @@ export default function Donate() {
           body: selectedFile,
         });
 
+        // Checks if S3 upload was successful
         if (!s3Res.ok) {
           throw new Error(`S3 upload failed: HTTP ${s3Res.status}`);
         }
 
+        // Store the object key to save in the item record (can be used later to generate display URL)
         photoKey = object_key;
       }
 
@@ -198,7 +204,7 @@ export default function Donate() {
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
               <Button
-                onClick={() => { setSuccess(false); setForm({ name: '', category: '', description: '', condition: '', quantity: 1, location: '' }); }}
+                onClick={() => { setSuccess(false); setForm({ name: '', category: '', description: '', condition: '', quantity: 1, location: '' }); setSelectedFile(null); }}
                 sx={{
                   textTransform: 'none', fontWeight: 600, borderRadius: 2,
                   border: `1px solid ${brand.tan}`, color: brand.muted,

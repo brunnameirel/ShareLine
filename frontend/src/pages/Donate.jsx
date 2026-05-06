@@ -79,6 +79,7 @@ export default function Donate() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -107,19 +108,61 @@ export default function Donate() {
 
     setLoading(true);
     try {
+
+      let photoKey = null;
+      if (selectedFile) {
+        const uploadUrlRes = await fetch(`${API}/uploads/presigned-url`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            filename: selectedFile.name,
+            content_type: selectedFile.type,
+          }),
+        });
+
+        if (!uploadUrlRes.ok) {
+          const err = await uploadUrlRes.json();
+          throw new Error(err.detail || `Upload URL failed: HTTP ${uploadUrlRes.status}`);
+        }
+
+        const { upload_url, object_key } = await uploadUrlRes.json();
+
+        const s3Res = await fetch(upload_url, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': selectedFile.type,
+          },
+          body: selectedFile,
+        });
+
+        if (!s3Res.ok) {
+          throw new Error(`S3 upload failed: HTTP ${s3Res.status}`);
+        }
+
+        photoKey = object_key;
+      }
+
+      //Attempt donation form submission
       const res = await fetch(`${API}/items`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ ...form, quantity: Number(form.quantity) }),
+        body: JSON.stringify({ ...form, quantity: Number(form.quantity), photo_urls: photoKey }),
       });
+
+      //error in form submission
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.detail || `HTTP ${res.status}`);
       }
+
       setSuccess(true);
+
     } catch (err) {
       setError(err.message);
     } finally {
@@ -326,6 +369,16 @@ export default function Donate() {
               sx={{ ...fieldSx, mt: 3 }}
             />
           </Section>
+
+          <Divider />
+
+          <TextField
+            type="file"
+            fullWidth
+            inputProps={{ accept: 'image/*' }}
+            onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+            sx={{ ...fieldSx, mt: 3 }}
+          />
 
           <Divider />
 

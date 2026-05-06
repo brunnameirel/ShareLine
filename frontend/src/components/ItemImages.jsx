@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 const API = import.meta.env.VITE_API_URL;
 
-export default function ListingImage({ objectKey, alt }) {
+export default function ItemImage({ objectKey, alt }) {
   const [url, setUrl] = useState(null);
 
   useEffect(() => {

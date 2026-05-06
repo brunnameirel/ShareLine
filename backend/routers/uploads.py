@@ -35,7 +35,7 @@ def create_presigned_upload_url(req: UploadUrlRequest):
         raise HTTPException(status_code=400, detail="Only image files allowed")
 
     file_ext = req.filename.split(".")[-1]
-    object_key = f"listing-images/{uuid.uuid4()}.{file_ext}"
+    object_key = f"item-images/{uuid.uuid4()}.{file_ext}"
 
     upload_url = s3.generate_presigned_url(
         ClientMethod="put_object",

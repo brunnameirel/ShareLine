@@ -44,6 +44,21 @@ const CATEGORIES = [
 
 const CONDITIONS = ['New', 'Like New', 'Good', 'Fair'];
 
+async function getErrorMessage(response) {
+  const text = await response.text();
+
+  if (!text) {
+    return `HTTP ${response.status}`;
+  }
+
+  try {
+    const data = JSON.parse(text);
+    return data.detail || text;
+  } catch {
+    return text;
+  }
+}
+
 function PixelSparkle({ top, left, size = 8 }) {
   return (
     <Box sx={{
@@ -126,8 +141,7 @@ export default function Donate() {
 
         // Checks if presigned URL request was successful
         if (!uploadUrlRes.ok) {
-          const err = await uploadUrlRes.json();
-          throw new Error(err.detail || `Upload URL failed: HTTP ${uploadUrlRes.status}`);
+          throw new Error(await getErrorMessage(uploadUrlRes));
         }
 
         // Extract upload URL and object key from response
@@ -144,7 +158,7 @@ export default function Donate() {
 
         // Checks if S3 upload was successful
         if (!s3Res.ok) {
-          throw new Error(`S3 upload failed: HTTP ${s3Res.status}`);
+          throw new Error(await getErrorMessage(s3Res));
         }
 
         // Store the object key to save in the item record (can be used later to generate display URL)
@@ -163,8 +177,7 @@ export default function Donate() {
 
       //error in form submission
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || `HTTP ${res.status}`);
+        throw new Error(await getErrorMessage(res));
       }
 
       setSuccess(true);
@@ -431,7 +444,7 @@ export default function Donate() {
               )}
             </Box>
           </Section>
-          
+
           <Divider />
 
           {/* ── Section 4: Pickup ── */}

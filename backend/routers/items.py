@@ -44,6 +44,7 @@ class ItemRead(BaseModel):
     quantity: int
     location: str
     status: str
+    photo_urls: Optional[str] = None
 
     class Config:
         from_attributes = True

@@ -22,6 +22,7 @@ import {
   ArrowForward,
 } from '@mui/icons-material';
 import { supabase } from '../supabaseClient';
+import ItemImage from '../components/ItemImages.jsx';
 
 // ── Static maps ────────────────────────────────────────────────
 
@@ -139,7 +140,7 @@ export default function Dashboard() {
       tasks.push(
         supabase
           .from('request')
-          .select('id, status, item:item_id(name, category, location, donor:donor_id(name))')
+          .select('id, status, item:item_id(name, category, location, photo_urls, donor:donor_id(name))')
           .eq('requester_id', prof.id)
           .order('created_at', { ascending: false })
           .limit(6)
@@ -151,7 +152,7 @@ export default function Dashboard() {
     tasks.push(
       supabase
         .from('item')
-        .select('id, name, category, condition, location, donor:donor_id(name)')
+        .select('id, name, category, condition, location, photo_urls, donor:donor_id(name)')
         .eq('status', 'Available')
         .neq('donor_id', prof.id)
         .order('created_at', { ascending: false })
@@ -400,11 +401,20 @@ export default function Dashboard() {
           </Box>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 2 }}>
             {featuredItems.length > 0 ? featuredItems.map((item) => (
-              <Box key={item.id} sx={{ backgroundColor: '#fff', border: '1px solid #f0e0cc', borderRadius: 3, overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s', '&:hover': { transform: 'translateY(-3px)', boxShadow: '0 6px 20px rgba(181,51,36,0.08)' } }}>
-                <Box sx={{ height: 120, backgroundColor: '#faf5ef', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                  <Box sx={{ color: '#DFBC94', opacity: 0.6, '& .MuiSvgIcon-root': { fontSize: 40 } }}>
-                    {categoryIcons[item.category] || <Inventory2 sx={{ fontSize: 40 }} />}
-                  </Box>
+              <Box key={item.id} sx={{ backgroundColor: '#fff', border: '1px solid #f0e0cc', borderRadius: 3, overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s', '&:hover': { transform: 'translateY(-3px)', boxShadow: '0 6px 20px rgba(181,51,36,0.08)' }, minHeight: 280, display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ height: 200, backgroundColor: '#faf5ef', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                  {item.photo_urls ? (
+                    <ItemImage
+                      objectKey={item.photo_urls}
+                      alt={item.name}
+                      height={200}
+                    />
+                  ) : (
+                    <Box sx={{ color: '#DFBC94', opacity: 0.6, '& .MuiSvgIcon-root': { fontSize: 40 } }}>
+                      {categoryIcons[item.category] || <Inventory2 sx={{ fontSize: 40 }} />}
+                    </Box>
+                  )}
+
                   <Chip label={item.condition} size="small"
                     sx={{ position: 'absolute', top: 8, right: 8, backgroundColor: '#fff', color: '#8a6d4b', fontWeight: 600, fontSize: '0.65rem', height: 22, border: '1px solid #f0e0cc' }}
                   />
@@ -436,11 +446,19 @@ export default function Dashboard() {
             </Box>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 2 }}>
               {sentRequests.length > 0 ? sentRequests.map((req) => (
-                <Box key={req.id} sx={{ backgroundColor: '#fff', border: '1px solid #f0e0cc', borderRadius: 3, overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s', '&:hover': { transform: 'translateY(-3px)', boxShadow: '0 6px 20px rgba(181,51,36,0.08)' } }}>
-                  <Box sx={{ height: 120, backgroundColor: '#faf5ef', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                    <Box sx={{ color: '#DFBC94', opacity: 0.6, '& .MuiSvgIcon-root': { fontSize: 40 } }}>
-                      {categoryIcons[req.item?.category] || <Inventory2 sx={{ fontSize: 40 }} />}
-                    </Box>
+                <Box key={req.id} sx={{ backgroundColor: '#fff', border: '1px solid #f0e0cc', borderRadius: 3, overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s', '&:hover': { transform: 'translateY(-3px)', boxShadow: '0 6px 20px rgba(181,51,36,0.08)' }, minHeight: 340, display: 'flex', flexDirection: 'column' }}>
+                  <Box sx={{ height: 200, backgroundColor: '#faf5ef', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                    {req.item?.photo_urls ? (
+                      <ItemImage
+                        objectKey={req.item.photo_urls}
+                        alt={req.item.name}
+                        height={200}
+                      />
+                    ) : (
+                      <Box sx={{ color: '#DFBC94', opacity: 0.6, '& .MuiSvgIcon-root': { fontSize: 40 } }}>
+                        {categoryIcons[req.item?.category] || <Inventory2 sx={{ fontSize: 40 }} />}
+                      </Box>
+                    )}
                     <Chip label={req.status} size="small"
                       sx={{ position: 'absolute', top: 8, right: 8, backgroundColor: statusColors[req.status]?.bg || '#f5f5f5', color: statusColors[req.status]?.color || '#8a6d4b', border: `1px solid ${statusColors[req.status]?.border || '#e0e0e0'}`, fontWeight: 600, fontSize: '0.65rem', height: 22 }}
                     />

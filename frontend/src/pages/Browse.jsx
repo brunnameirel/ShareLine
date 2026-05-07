@@ -11,6 +11,7 @@ import {
   Person, CheckCircle,
 } from '@mui/icons-material';
 import { supabase } from '../supabaseClient';
+import ItemImage from '../components/ItemImages.jsx';
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -366,17 +367,36 @@ function ItemCard({ item, onClick }) {
         '&:hover': { transform: 'translateY(-3px)', boxShadow: '0 8px 24px rgba(181,51,36,0.1)', borderColor: brand.gold },
       }}
     >
-      {/* Image placeholder with icon */}
-      <Box sx={{ height: 140, backgroundColor: '#faf5ef', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-        <Box sx={{ color: brand.tan, opacity: 0.8 }}>
-          {CATEGORY_BIG_ICONS[item.category] || <Inventory2 sx={{ fontSize: 40 }} />}
-        </Box>
+      {/* Retrieve image from s3 */}
+      <Box sx={{ position: 'relative' }}>
+        {item.photo_urls ? (
+          <ItemImage objectKey={item.photo_urls} alt={item.name} />
+        ) : (
+          <Box
+            sx={{
+              height: 140,
+              backgroundColor: '#faf5ef',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Box sx={{ color: brand.tan, opacity: 0.8 }}>
+              {CATEGORY_BIG_ICONS[item.category] || <Inventory2 sx={{ fontSize: 40 }} />}
+            </Box>
+          </Box>
+        )}
+
         <Chip
           label={item.condition}
           size="small"
           sx={{
-            position: 'absolute', top: 10, right: 10,
-            fontWeight: 600, fontSize: '0.65rem', height: 22,
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            fontWeight: 600,
+            fontSize: '0.65rem',
+            height: 22,
             backgroundColor: conditionColor[item.condition]?.bg || '#f5f5f5',
             color: conditionColor[item.condition]?.color || brand.muted,
             border: `1px solid ${conditionColor[item.condition]?.border || '#e0e0e0'}`,

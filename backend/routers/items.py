@@ -31,6 +31,7 @@ class ItemCreate(BaseModel):
     condition: str
     quantity: int = Field(..., ge=1, le=99)
     location: str = Field(..., min_length=1, max_length=200)
+    photo_urls: Optional[str] = None
 
 
 class ItemRead(BaseModel):
@@ -43,6 +44,7 @@ class ItemRead(BaseModel):
     quantity: int
     location: str
     status: str
+    photo_urls: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -101,6 +103,7 @@ def create_item(
         condition=payload.condition,
         quantity=payload.quantity,
         location=payload.location,
+        photo_urls=payload.photo_urls, 
     )
     session.add(item)
     session.commit()

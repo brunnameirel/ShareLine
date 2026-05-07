@@ -14,6 +14,7 @@ from routers.auth import router as auth_router
 from routers.requests import router as requests_router
 from routers.items import router as items_router
 from routers.notifications import router as notifications_router
+from routers.uploads import router as uploads_router
 # ---------------------------------------------------------------------------
 
 @asynccontextmanager
@@ -49,6 +50,7 @@ app.include_router(items_router)
 app.include_router(messages_router)
 app.include_router(requests_router)
 app.include_router(notifications_router)
+app.include_router(uploads_router) 
 
 @app.get("/")
 def root():

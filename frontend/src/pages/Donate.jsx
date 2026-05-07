@@ -44,6 +44,21 @@ const CATEGORIES = [
 
 const CONDITIONS = ['New', 'Like New', 'Good', 'Fair'];
 
+async function getErrorMessage(response) {
+  const text = await response.text();
+
+  if (!text) {
+    return `HTTP ${response.status}`;
+  }
+
+  try {
+    const data = JSON.parse(text);
+    return data.detail || text;
+  } catch {
+    return text;
+  }
+}
+
 function PixelSparkle({ top, left, size = 8 }) {
   return (
     <Box sx={{
@@ -79,6 +94,7 @@ export default function Donate() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -107,19 +123,65 @@ export default function Donate() {
 
     setLoading(true);
     try {
+
+      let photoKey = null;
+      // If user selected a photo, get presigned URL to upload photo to s3
+      if (selectedFile) {
+        const uploadUrlRes = await fetch(`${API}/uploads/presigned-url`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            filename: selectedFile.name,
+            content_type: selectedFile.type,
+          }),
+        });
+
+        // Checks if presigned URL request was successful
+        if (!uploadUrlRes.ok) {
+          throw new Error(await getErrorMessage(uploadUrlRes));
+        }
+
+        // Extract upload URL and object key from response
+        const { upload_url, object_key } = await uploadUrlRes.json();
+
+        // Upload photo directly to S3 using the presigned URL
+        const s3Res = await fetch(upload_url, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': selectedFile.type,
+          },
+          body: selectedFile,
+        });
+
+        // Checks if S3 upload was successful
+        if (!s3Res.ok) {
+          throw new Error(await getErrorMessage(s3Res));
+        }
+
+        // Store the object key to save in the item record (can be used later to generate display URL)
+        photoKey = object_key;
+      }
+
+      //Attempt donation form submission
       const res = await fetch(`${API}/items`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ ...form, quantity: Number(form.quantity) }),
+        body: JSON.stringify({ ...form, quantity: Number(form.quantity), photo_urls: photoKey }),
       });
+
+      //error in form submission
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || `HTTP ${res.status}`);
+        throw new Error(await getErrorMessage(res));
       }
+
       setSuccess(true);
+
     } catch (err) {
       setError(err.message);
     } finally {
@@ -155,7 +217,7 @@ export default function Donate() {
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
               <Button
-                onClick={() => { setSuccess(false); setForm({ name: '', category: '', description: '', condition: '', quantity: 1, location: '' }); }}
+                onClick={() => { setSuccess(false); setForm({ name: '', category: '', description: '', condition: '', quantity: 1, location: '' }); setSelectedFile(null); }}
                 sx={{
                   textTransform: 'none', fontWeight: 600, borderRadius: 2,
                   border: `1px solid ${brand.tan}`, color: brand.muted,
@@ -329,8 +391,64 @@ export default function Donate() {
 
           <Divider />
 
-          {/* ── Section 3: Pickup ── */}
-          <Section label="Where can it be picked up?" step="3">
+          {/* ── Section 3: Photo ── */}
+          <Section label="Add a photo" step="3">
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Button
+                component="label"
+                sx={{
+                  alignSelf: 'flex-start',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  border: `1px solid ${brand.tan}`,
+                  color: brand.muted,
+                  backgroundColor: '#faf8f5',
+                  px: 2.5,
+                  py: 1,
+                  '&:hover': {
+                    borderColor: brand.red,
+                    color: brand.red,
+                    backgroundColor: '#fef2f0',
+                  },
+                }}
+              >
+                Choose image
+                <input
+                  hidden
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                />
+              </Button>
+
+              {selectedFile && (
+                <Typography sx={{ fontSize: 13, color: brand.muted }}>
+                  Selected: <strong>{selectedFile.name}</strong>
+                </Typography>
+              )}
+
+              {selectedFile && (
+                <Box
+                  component="img"
+                  src={URL.createObjectURL(selectedFile)}
+                  alt="Selected item preview"
+                  sx={{
+                    width: '100%',
+                    maxHeight: 220,
+                    objectFit: 'cover',
+                    borderRadius: 2,
+                    border: `1px solid ${brand.tan}`,
+                  }}
+                />
+              )}
+            </Box>
+          </Section>
+
+          <Divider />
+
+          {/* ── Section 4: Pickup ── */}
+          <Section label="Where can it be picked up?" step="4">
             <TextField
               label="Location"
               fullWidth

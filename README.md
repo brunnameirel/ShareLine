@@ -113,16 +113,22 @@ The app will be available at `http://localhost:5173`.
 | GET    | `/messages/{request_id}`        | Get messages for a request thread  |
 | POST   | `/messages/{request_id}`        | Send a message in a thread         |
 | GET    | `/notifications`                | Get notifications for current user |
+| POST   | `/uploads/presigned-url`        | Generate s3 image upload link      |
+| GET    | `/uploads/display-url`          | Get s3 image display link          |
 
 ---
 
 ## Environment Variables
 
-| Variable       | Description                                      |
-|----------------|--------------------------------------------------|
-| `DATABASE_URL` | PostgreSQL connection string                     |
-| `SECRET_KEY`   | Secret key used to sign JWT tokens               |
-| `STORAGE_URL`  | Object storage bucket URL for photo uploads      |
+| Variable                 | Description                                      |
+|--------------------------|--------------------------------------------------|
+| `DATABASE_URL`           | PostgreSQL connection string                     |
+| `SECRET_KEY`             | Secret key used to sign JWT tokens               |
+| `STORAGE_URL`            | Object storage bucket URL for photo uploads      |
+| `S3_BUCKET_NAME`         | s3 bucket name storing images                    |
+| `AWS_REGION`             | s3 bucket region                                 |
+| `AWS_SECRET_KEY_ID`      | s3 key used to access image bucket               |
+| `AWS_SECRET_ACCESS_KEY`  | AWS access key used for s3 bucket                |
 
 ---
 

@@ -10,6 +10,7 @@ import {
   FavoriteBorder, CardGiftcard,
 } from '@mui/icons-material';
 import { supabase } from '../supabaseClient';
+import ItemImage from '../components/ItemImages.jsx';
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -76,7 +77,7 @@ export default function Profile() {
       // Items (donor)
       const { data: items } = await supabase
         .from('item')
-        .select('id, name, category, status, condition')
+        .select('id, name, category, status, condition, photo_urls')
         .eq('donor_id', user.id)
         .order('created_at', { ascending: false });
       setMyItems(items || []);
@@ -84,7 +85,7 @@ export default function Profile() {
       // Requests (requester)
       const { data: reqs } = await supabase
         .from('request')
-        .select('id, status, requested_quantity, item:item_id(name, category)')
+        .select('id, status, requested_quantity, item:item_id(name, category, photo_urls)')
         .eq('requester_id', user.id)
         .order('created_at', { ascending: false });
       setMyRequests(reqs || []);
@@ -295,8 +296,12 @@ export default function Profile() {
                 backgroundColor: '#faf8f5', border: `1px solid ${brand.tan}`,
               }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Box sx={{ width: 36, height: 36, borderRadius: 2, backgroundColor: '#FFF3E0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: brand.gold }}>
-                    {categoryIcons[item.category] || categoryIcons.Other}
+                  <Box sx={{ width: 140, height: 140, borderRadius: 2, overflow: 'hidden', backgroundColor: '#FFF3E0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: brand.gold }}>
+                    {item.photo_urls ? (
+                      <ItemImage objectKey={item.photo_urls} alt={item.name} height={140} />
+                    ) : (
+                      categoryIcons[item.category] || categoryIcons.Other
+                    )}
                   </Box>
                   <Box>
                     <Typography sx={{ fontWeight: 600, fontSize: 14, color: '#2c1a0e' }}>{item.name}</Typography>
@@ -329,8 +334,12 @@ export default function Profile() {
                 backgroundColor: '#faf8f5', border: `1px solid ${brand.tan}`,
               }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Box sx={{ width: 36, height: 36, borderRadius: 2, backgroundColor: '#FFF3E0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: brand.gold }}>
-                    {categoryIcons[req.item?.category] || categoryIcons.Other}
+                  <Box sx={{ width: 140, height: 140, borderRadius: 2, overflow: 'hidden', backgroundColor: '#FFF3E0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: brand.gold }}>
+                    {req.item?.photo_urls ? (
+                      <ItemImage objectKey={req.item.photo_urls} alt={req.item.name} height={140} />
+                    ) : (
+                      categoryIcons[req.item?.category] || categoryIcons.Other
+                    )}
                   </Box>
                   <Box>
                     <Typography sx={{ fontWeight: 600, fontSize: 14, color: '#2c1a0e' }}>{req.item?.name}</Typography>

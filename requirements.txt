@@ -57,3 +57,7 @@ uvicorn==0.43.0
 uvloop==0.22.1
 watchfiles==1.1.1
 websockets==16.0
+boto3==1.43.4
+botocore==1.43.4
+s3transfer==0.17.0
+jmespath==1.1.0

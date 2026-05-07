@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 const API = import.meta.env.VITE_API_URL;
 
-export default function ItemImage({ objectKey, alt }) {
+export default function ItemImage({ objectKey, alt, height = 200 }) {
   const [url, setUrl] = useState(null);
 
   useEffect(() => {
@@ -13,8 +13,14 @@ export default function ItemImage({ objectKey, alt }) {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
-      .then((data) => setUrl(data.url))
-      .catch(() => setUrl(null));
+      .then((data) => {
+        console.log("display url data:", data);
+        setUrl(data.url)
+      })
+      .catch((err) => { 
+        console.error("Image URL failed:", err);
+        setUrl(null);
+       });
   }, [objectKey]);
 
   if (!objectKey || !url) {
@@ -27,7 +33,7 @@ export default function ItemImage({ objectKey, alt }) {
       alt={alt || 'Listing image'}
       style={{
         width: '100%',
-        height: '180px',
+        height,
         objectFit: 'cover',
         borderRadius: '12px',
       }}

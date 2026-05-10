@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import {
   Box,
   Card,
@@ -17,8 +17,12 @@ import {
 } from '@mui/icons-material';
 import { supabase } from '../supabaseClient';
 
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 export default function Onboarding() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromForumBanner = location.state?.message;
   const [name, setName] = useState('');
   const [isDonor, setIsDonor] = useState(false);
   const [isRequester, setIsRequester] = useState(false);
@@ -58,7 +62,7 @@ export default function Onboarding() {
 
     try {
       // Create the user row via FastAPI (bypasses RLS)
-      const res = await fetch('http://localhost:8000/auth/profile', {
+      const res = await fetch(`${API}/auth/profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -247,6 +251,12 @@ export default function Onboarding() {
                 }}
               >
                 {error}
+              </Alert>
+            )}
+
+            {fromForumBanner && (
+              <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+                {fromForumBanner}
               </Alert>
             )}
 

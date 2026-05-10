@@ -4,6 +4,8 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 import { VolunteerActivism } from '@mui/icons-material';
 import { supabase } from '../supabaseClient';
 
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 export default function AuthCallback() {
   const navigate = useNavigate();
   const [status, setStatus] = useState('Finishing sign-in…');
@@ -33,7 +35,7 @@ export default function AuthCallback() {
         console.log('Session found:', session);
 
         // Check if a DB profile already exists via FastAPI (bypasses RLS)
-        const res = await fetch('http://localhost:8000/auth/me', {
+        const res = await fetch(`${API}/auth/me`, {
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
 
@@ -53,7 +55,7 @@ export default function AuthCallback() {
           // Google but never have is_donor/is_requester, so they always go to onboarding.
           const hasRoles = meta?.is_donor !== undefined || meta?.is_requester !== undefined;
           if (meta?.name && hasRoles) {
-            const createRes = await fetch('http://localhost:8000/auth/profile', {
+            const createRes = await fetch(`${API}/auth/profile`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

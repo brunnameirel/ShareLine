@@ -16,6 +16,7 @@ from routers.items import router as items_router
 from routers.notifications import router as notifications_router
 from routers.uploads import router as uploads_router
 from routers.forum import router as forum_router
+from routers.impact import router as impact_router
 # ---------------------------------------------------------------------------
 
 @asynccontextmanager
@@ -55,6 +56,7 @@ app.include_router(requests_router)
 app.include_router(notifications_router)
 app.include_router(uploads_router)
 app.include_router(forum_router)
+app.include_router(impact_router)
 
 @app.get("/")
 def root():

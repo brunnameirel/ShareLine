@@ -7,3 +7,5 @@ venv/
 .venv/
 node_modules/
 shareline.db
+frontend/dist/
+dist/

@@ -2,7 +2,7 @@
 Impact dashboard aggregates — rough reuse estimates for morale / storytelling.
 
 Endpoints:
-    GET /impact/summary — personal giving/receiving + community totals (auth required)
+    GET /impact/summary — personal giving and receiving totals (auth required)
 """
 
 from typing import Dict, List, Tuple
@@ -85,21 +85,9 @@ class ReceivingImpact(BaseModel):
     estimated_co2_kg_saved: float
 
 
-class CommunityImpact(BaseModel):
-    completed_listings_total: int
-    units_on_completed_listings: int
-    completed_handoffs_total: int = Field(
-        description="Requests marked Completed (successful matches)."
-    )
-    units_via_completed_handoffs: int
-    estimated_value_usd: float
-    estimated_co2_kg_saved: float
-
-
 class ImpactSummaryRead(BaseModel):
     giving: GivingImpact
     receiving: ReceivingImpact
-    community: CommunityImpact
     methodology_note: str
 
 
@@ -114,7 +102,7 @@ def impact_summary(
     session: SessionDep,
     current_user: UserTable = Depends(get_current_user),
 ) -> ImpactSummaryRead:
-    """Aggregate impact stats for the signed-in user and the whole platform."""
+    """Aggregate impact stats for the signed-in user."""
 
     # --- Personal: giving (completed listings by this donor) ---
     my_completed_items = session.exec(
@@ -132,19 +120,6 @@ def impact_summary(
     recv_units = sum(r.requested_quantity for r in my_completed_reqs)
     r_usd, r_co2 = _sum_estimate_requests(session, list(my_completed_reqs))
 
-    # --- Community ---
-    all_completed_items = session.exec(select(ItemTable).where(ItemTable.status == "Completed")).all()
-    community_listing_units = sum(i.quantity for i in all_completed_items)
-    c_items_usd, c_items_co2 = _sum_estimate_items(list(all_completed_items))
-
-    all_completed_reqs = session.exec(select(RequestTable).where(RequestTable.status == "Completed")).all()
-    community_req_units = sum(r.requested_quantity for r in all_completed_reqs)
-    # Avoid double-counting: monetary/co₂ from handoffs (requests); fallback if legacy data has items only.
-    if all_completed_reqs:
-        comm_usd, comm_co2 = _sum_estimate_requests(session, list(all_completed_reqs))
-    else:
-        comm_usd, comm_co2 = c_items_usd, c_items_co2
-
     return ImpactSummaryRead(
         giving=GivingImpact(
             completed_listings=len(my_completed_items),
@@ -157,14 +132,6 @@ def impact_summary(
             units_received=recv_units,
             estimated_value_usd=r_usd,
             estimated_co2_kg_saved=r_co2,
-        ),
-        community=CommunityImpact(
-            completed_listings_total=len(all_completed_items),
-            units_on_completed_listings=community_listing_units,
-            completed_handoffs_total=len(all_completed_reqs),
-            units_via_completed_handoffs=community_req_units,
-            estimated_value_usd=comm_usd,
-            estimated_co2_kg_saved=comm_co2,
         ),
         methodology_note=METHODOLOGY_NOTE,
     )

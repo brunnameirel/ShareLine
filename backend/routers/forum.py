@@ -123,6 +123,9 @@ def create_thread(
         updated_at=now,
     )
     session.add(thread)
+    # Parent row must exist in DB before forum_post insert (FK). Without a mapped
+    # relationship, SQLAlchemy may otherwise INSERT forum_post first.
+    session.flush()
 
     post = ForumPostTable(
         thread_id=thread.id,

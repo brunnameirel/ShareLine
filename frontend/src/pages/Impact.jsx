@@ -215,7 +215,7 @@ export default function Impact() {
             Impact dashboard
           </Typography>
           <Typography sx={{ color: brand.muted, fontSize: 15, maxWidth: 560 }}>
-            Rough estimates of how reuse saves money and emissions — celebrate progress, not perfection.
+            Rough estimates of how reuse saves money and emissions. Celebrate progress, not perfection.
           </Typography>
         </Box>
 
@@ -239,16 +239,16 @@ export default function Impact() {
 
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
               <ImpactCard title="Your giving" icon={<VolunteerActivism />} accent={`linear-gradient(135deg, ${brand.red}12, #fff)`}>
-                <Metric label="Completed listings" value={data.giving.completed_listings} />
-                <Metric label="Units (listed qty)" value={data.giving.units} hint="Sum of quantities on items marked completed." />
+                <Metric label="Items listed" value={data.giving.items_listed} />
+                <Metric label="Units listed" value={data.giving.units_listed} hint="Total quantity across your ShareLine donations." />
                 <Metric label="Est. value circulated" value={fmtUsd(data.giving.estimated_value_usd)} />
                 <Metric label="Est. CO₂ avoided" value={fmtKg(data.giving.estimated_co2_kg_saved)} hint="Illustrative reuse savings." />
               </ImpactCard>
 
               <ImpactCard title="Your receiving" icon={<CardGiftcard />} accent={`linear-gradient(135deg, ${brand.gold}20, #fff)`}>
-                <Metric label="Completed handoffs" value={data.receiving.completed_requests} />
-                <Metric label="Units received" value={data.receiving.units_received} />
-                <Metric label="Est. value received" value={fmtUsd(data.receiving.estimated_value_usd)} />
+                <Metric label="Active requests" value={data.receiving.active_requests} hint="Pending, approved, or completed (excludes rejected)." />
+                <Metric label="Units requested" value={data.receiving.units_requested} />
+                <Metric label="Est. value requested" value={fmtUsd(data.receiving.estimated_value_usd)} />
                 <Metric label="Est. CO₂ avoided" value={fmtKg(data.receiving.estimated_co2_kg_saved)} />
               </ImpactCard>
             </Box>

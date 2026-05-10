@@ -1,2 +1,13 @@
 fastapi
-uvicorn
+uvicorn[standard]
+sqlmodel
+python-dotenv
+python-multipart
+pydantic[email]
+email-validator
+python-jose[cryptography]
+requests
+boto3
+
+pytest
+httpx>=0.26,<0.28

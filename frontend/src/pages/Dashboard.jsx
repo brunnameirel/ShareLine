@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -13,6 +13,7 @@ import {
   VolunteerActivism,
   Search,
   ChatBubbleOutlined,
+  Forum as ForumIcon,
   Add,
   Checkroom,
   MenuBook,
@@ -23,6 +24,8 @@ import {
 } from '@mui/icons-material';
 import { supabase } from '../supabaseClient';
 import ItemImage from '../components/ItemImages.jsx';
+
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 // ── Static maps ────────────────────────────────────────────────
 
@@ -78,6 +81,7 @@ function PixelSparkle({ top, left, size = 8 }) {
 // ── Dashboard ────────────────────────────────────────────────────
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState('dashboard');
   const [profile, setProfile] = useState(null);        // { id, name, is_donor, is_requester }
   const [myItems, setMyItems] = useState([]);           // donor's items (with embedded request[])
@@ -97,11 +101,18 @@ export default function Dashboard() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    const meRes = await fetch('http://localhost:8000/auth/me', {
+    const meRes = await fetch(`${API}/auth/me`, {
       headers: { Authorization: `Bearer ${session.access_token}` },
     });
 
-    if (!meRes.ok) { console.error('Failed to fetch user profile', meRes.status); return; }
+    if (meRes.status === 404) {
+      navigate('/onboarding', { replace: true });
+      return;
+    }
+    if (!meRes.ok) {
+      console.error('Failed to fetch user profile', meRes.status);
+      return;
+    }
     const userData = await meRes.json();
 
     // Name lives in auth metadata (set during onboarding via updateUser)
@@ -246,6 +257,7 @@ export default function Dashboard() {
   const navItems = [
     { key: 'donate',   label: 'Donate',   icon: <VolunteerActivism sx={{ fontSize: 20 }} />, to: '/donate' },
     { key: 'browse',   label: 'Browse',   icon: <Search sx={{ fontSize: 20 }} />,             to: '/browse' },
+    { key: 'forum',    label: 'Forum',    icon: <ForumIcon sx={{ fontSize: 20 }} />,           to: '/forum' },
     { key: 'messages', label: 'Messages', icon: <ChatBubbleOutlined sx={{ fontSize: 20 }} />, to: '/messages',
       badge: messageThreads.length || null },
   ];

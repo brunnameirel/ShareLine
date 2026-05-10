@@ -19,12 +19,26 @@ load_dotenv()
 
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-engine = create_engine(
-    DATABASE_URL,
-    echo=os.getenv("SQL_ECHO", "false").lower() == "true",  
-    pool_pre_ping=True,      
-    pool_recycle=300,        
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is not set. Configure .env or set it before importing the app.")
+
+_engine_kwargs = {}
+if DATABASE_URL.startswith("sqlite"):
+    # In-memory SQLite needs a shared pool across FastAPI TestClient connections.
+    from sqlalchemy.pool import StaticPool
+
+    _engine_kwargs["poolclass"] = StaticPool
+    _engine_kwargs["connect_args"] = {"check_same_thread": False}
+
+_engine_common = dict(
+    echo=os.getenv("SQL_ECHO", "false").lower() == "true",
+    pool_pre_ping=not DATABASE_URL.startswith("sqlite"),
+    **_engine_kwargs,
 )
+if not DATABASE_URL.startswith("sqlite"):
+    _engine_common["pool_recycle"] = 300
+
+engine = create_engine(DATABASE_URL, **_engine_common)
 
 def create_db_and_tables() -> None:
     """Create all tables that don't already exist.

@@ -1,8 +1,8 @@
 """
-Impact dashboard aggregates — rough reuse estimates for morale / storytelling.
+Impact dashboard aggregates: rough reuse estimates for morale / storytelling.
 
 Endpoints:
-    GET /impact/summary — personal giving and receiving totals (auth required)
+    GET /impact/summary: personal giving and receiving totals (auth required)
 """
 
 from typing import Dict, List, Tuple
@@ -72,15 +72,17 @@ def _sum_estimate_requests(session: Session, reqs: List[RequestTable]) -> Tuple[
 
 
 class GivingImpact(BaseModel):
-    completed_listings: int = Field(description="Items you listed that reached Completed status.")
-    units: int = Field(description="Sum of listing quantities for those completed items.")
+    items_listed: int = Field(description="Item rows you have posted as a donor.")
+    units_listed: int = Field(description="Sum of quantities across those listings.")
     estimated_value_usd: float
     estimated_co2_kg_saved: float
 
 
 class ReceivingImpact(BaseModel):
-    completed_requests: int
-    units_received: int
+    active_requests: int = Field(
+        description="Requests you placed that are pending, approved, or completed (not rejected)."
+    )
+    units_requested: int = Field(description="Sum of requested_quantity across those requests.")
     estimated_value_usd: float
     estimated_co2_kg_saved: float
 
@@ -92,8 +94,8 @@ class ImpactSummaryRead(BaseModel):
 
 
 METHODOLOGY_NOTE = (
-    "Figures are illustrative: category averages approximate typical resale value "
-    "and avoided emissions from reuse—not audited carbon accounting."
+    "Giving reflects everything you have listed; receiving reflects your open requests "
+    "(pending through matched). Dollar and CO₂ figures use category averages (illustrative only)."
 )
 
 
@@ -104,32 +106,32 @@ def impact_summary(
 ) -> ImpactSummaryRead:
     """Aggregate impact stats for the signed-in user."""
 
-    # --- Personal: giving (completed listings by this donor) ---
-    my_completed_items = session.exec(
-        select(ItemTable).where(ItemTable.donor_id == current_user.id).where(ItemTable.status == "Completed")
+    # --- Giving: all listings (Available / Reserved / Completed, real donor activity) ---
+    my_items = session.exec(
+        select(ItemTable).where(ItemTable.donor_id == current_user.id)
     ).all()
-    giving_units = sum(i.quantity for i in my_completed_items)
-    g_usd, g_co2 = _sum_estimate_items(list(my_completed_items))
+    giving_units = sum(i.quantity for i in my_items)
+    g_usd, g_co2 = _sum_estimate_items(list(my_items))
 
-    # --- Personal: receiving ---
-    my_completed_reqs = session.exec(
+    # --- Receiving: requests still in play (exclude Rejected only) ---
+    my_active_reqs = session.exec(
         select(RequestTable)
         .where(RequestTable.requester_id == current_user.id)
-        .where(RequestTable.status == "Completed")
+        .where(RequestTable.status != "Rejected")
     ).all()
-    recv_units = sum(r.requested_quantity for r in my_completed_reqs)
-    r_usd, r_co2 = _sum_estimate_requests(session, list(my_completed_reqs))
+    recv_units = sum(r.requested_quantity for r in my_active_reqs)
+    r_usd, r_co2 = _sum_estimate_requests(session, list(my_active_reqs))
 
     return ImpactSummaryRead(
         giving=GivingImpact(
-            completed_listings=len(my_completed_items),
-            units=giving_units,
+            items_listed=len(my_items),
+            units_listed=giving_units,
             estimated_value_usd=g_usd,
             estimated_co2_kg_saved=g_co2,
         ),
         receiving=ReceivingImpact(
-            completed_requests=len(my_completed_reqs),
-            units_received=recv_units,
+            active_requests=len(my_active_reqs),
+            units_requested=recv_units,
             estimated_value_usd=r_usd,
             estimated_co2_kg_saved=r_co2,
         ),

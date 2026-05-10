@@ -11,7 +11,6 @@ import {
 import {
   VolunteerActivism,
   CardGiftcard,
-  Groups,
   ArrowBack,
 } from '@mui/icons-material';
 import { supabase } from '../supabaseClient';
@@ -238,7 +237,7 @@ export default function Impact() {
               {data.methodology_note}
             </Alert>
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, mb: 3 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
               <ImpactCard title="Your giving" icon={<VolunteerActivism />} accent={`linear-gradient(135deg, ${brand.red}12, #fff)`}>
                 <Metric label="Completed listings" value={data.giving.completed_listings} />
                 <Metric label="Units (listed qty)" value={data.giving.units} hint="Sum of quantities on items marked completed." />
@@ -253,23 +252,6 @@ export default function Impact() {
                 <Metric label="Est. CO₂ avoided" value={fmtKg(data.receiving.estimated_co2_kg_saved)} />
               </ImpactCard>
             </Box>
-
-            <ImpactCard title="Community pulse" icon={<Groups />} accent={`linear-gradient(135deg, #16a34a18, ${brand.gold}15)`}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 0, columnGap: 3 }}>
-                <Box>
-                  <Metric label="Completed listings (campus-wide)" value={data.community.completed_listings_total} />
-                  <Metric label="Units on those listings" value={data.community.units_on_completed_listings} />
-                </Box>
-                <Box>
-                  <Metric label="Completed handoffs (requests)" value={data.community.completed_handoffs_total} />
-                  <Metric label="Units via handoffs" value={data.community.units_via_completed_handoffs} />
-                </Box>
-              </Box>
-              <Box sx={{ px: 0, pt: 1, mt: 1, borderTop: '1px solid #faf5ef' }}>
-                <Metric label="Community est. value (combined model)" value={fmtUsd(data.community.estimated_value_usd)} />
-                <Metric label="Community est. CO₂ avoided" value={fmtKg(data.community.estimated_co2_kg_saved)} />
-              </Box>
-            </ImpactCard>
           </>
         )}
       </Box>

@@ -17,6 +17,8 @@ import {
 import { Visibility, VisibilityOff, VolunteerActivism } from '@mui/icons-material';
 import { supabase } from '../supabaseClient';
 
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 export default function Register() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
@@ -78,7 +80,7 @@ export default function Register() {
       const token = data.session?.access_token;
       if (token) {
         // Create the user row via FastAPI (bypasses RLS)
-        const res = await fetch('http://localhost:8000/auth/profile', {
+        const res = await fetch(`${API}/auth/profile`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -339,14 +341,16 @@ export default function Register() {
                 helperText="Must be at least 8 characters"
                 sx={{ ...inputSx, mb: 3 }}
                 size="medium"
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
 

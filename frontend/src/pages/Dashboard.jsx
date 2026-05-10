@@ -531,6 +531,10 @@ export default function Dashboard() {
               <Typography variant="caption" sx={{ color: '#8a6d4b', mt: 0.5, display: 'block' }}>
                 {completedDonations} of 5 to earn "Super Sharer" badge
               </Typography>
+              <Button component={Link} to="/impact" size="small"
+                sx={{ textTransform: 'none', mt: 1.5, color: '#B53324', fontWeight: 600, p: 0, minWidth: 0, '&:hover': { backgroundColor: 'transparent', textDecoration: 'underline' } }}>
+                View impact dashboard →
+              </Button>
             </Box>
             <Box sx={{ opacity: 0.7 }}>
               <svg width="48" height="52" viewBox="0 0 24 26" shapeRendering="crispEdges">

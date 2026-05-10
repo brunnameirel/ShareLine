@@ -11,6 +11,8 @@ import Donate from './pages/Donate';
 import Browse from './pages/Browse';
 import Profile from './pages/Profile';
 import MyDonations from './pages/MyDonations';
+import Forum from './pages/Forum';
+import ForumThread from './pages/ForumThread';
 
 function App() {
   return (
@@ -70,6 +72,22 @@ function App() {
           element={
             <ProtectedRoute>
               <MessagesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/forum"
+          element={
+            <ProtectedRoute>
+              <Forum />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/forum/:threadId"
+          element={
+            <ProtectedRoute>
+              <ForumThread />
             </ProtectedRoute>
           }
         />

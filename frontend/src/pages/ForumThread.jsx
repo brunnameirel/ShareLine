@@ -55,6 +55,16 @@ export default function ForumThread() {
     if (!threadId) return;
     setLoading(true);
     try {
+      const me = await fetch(`${API}/auth/me`, {
+        headers: { Authorization: `Bearer ${tok}` },
+      });
+      if (me.status === 404) {
+        navigate('/onboarding', {
+          replace: true,
+          state: { message: 'Finish setting up your ShareLine profile to use the forum.' },
+        });
+        return;
+      }
       const res = await fetch(`${API}/forum/threads/${threadId}`, {
         headers: { Authorization: `Bearer ${tok}` },
       });

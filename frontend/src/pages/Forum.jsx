@@ -55,16 +55,23 @@ export default function Forum() {
 
   useEffect(() => {
     if (!session) return;
-    fetch(`${API}/auth/me`, {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    })
-      .then((r) => r.json())
-      .then(setProfile)
-      .catch(() => {});
-  }, [session]);
+    (async () => {
+      const res = await fetch(`${API}/auth/me`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.status === 404) {
+        navigate('/onboarding', {
+          replace: true,
+          state: { message: 'Finish setting up your ShareLine profile to use the forum.' },
+        });
+        return;
+      }
+      if (res.ok) setProfile(await res.json());
+    })();
+  }, [session, navigate]);
 
   const loadThreads = useCallback(async () => {
-    if (!session) return;
+    if (!session || !profile) return;
     setLoading(true);
     const q = category ? `?category=${encodeURIComponent(category)}` : '';
     try {
@@ -78,7 +85,7 @@ export default function Forum() {
     } finally {
       setLoading(false);
     }
-  }, [session, category]);
+  }, [session, profile, category]);
 
   useEffect(() => {
     loadThreads();

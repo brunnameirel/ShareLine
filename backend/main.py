@@ -15,6 +15,7 @@ from routers.requests import router as requests_router
 from routers.items import router as items_router
 from routers.notifications import router as notifications_router
 from routers.uploads import router as uploads_router
+from routers.forum import router as forum_router
 # ---------------------------------------------------------------------------
 
 @asynccontextmanager
@@ -32,8 +33,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",   # React dev server (Vite)
-        "http://localhost:3000",   # fallback
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -50,7 +53,8 @@ app.include_router(items_router)
 app.include_router(messages_router)
 app.include_router(requests_router)
 app.include_router(notifications_router)
-app.include_router(uploads_router) 
+app.include_router(uploads_router)
+app.include_router(forum_router)
 
 @app.get("/")
 def root():

@@ -13,6 +13,7 @@ import Profile from './pages/Profile';
 import MyDonations from './pages/MyDonations';
 import Forum from './pages/Forum';
 import ForumThread from './pages/ForumThread';
+import Impact from './pages/Impact';
 
 function App() {
   return (
@@ -88,6 +89,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ForumThread />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/impact"
+          element={
+            <ProtectedRoute>
+              <Impact />
             </ProtectedRoute>
           }
         />

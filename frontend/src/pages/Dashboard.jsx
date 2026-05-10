@@ -14,6 +14,7 @@ import {
   Search,
   ChatBubbleOutlined,
   Forum as ForumIcon,
+  EnergySavingsLeaf,
   Add,
   Checkroom,
   MenuBook,
@@ -258,6 +259,7 @@ export default function Dashboard() {
     { key: 'donate',   label: 'Donate',   icon: <VolunteerActivism sx={{ fontSize: 20 }} />, to: '/donate' },
     { key: 'browse',   label: 'Browse',   icon: <Search sx={{ fontSize: 20 }} />,             to: '/browse' },
     { key: 'forum',    label: 'Forum',    icon: <ForumIcon sx={{ fontSize: 20 }} />,           to: '/forum' },
+    { key: 'impact',   label: 'Impact',   icon: <EnergySavingsLeaf sx={{ fontSize: 20 }} />, to: '/impact' },
     { key: 'messages', label: 'Messages', icon: <ChatBubbleOutlined sx={{ fontSize: 20 }} />, to: '/messages',
       badge: messageThreads.length || null },
   ];

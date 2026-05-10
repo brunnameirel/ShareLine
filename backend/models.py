@@ -74,6 +74,31 @@ class NotificationTable(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class ForumThreadTable(SQLModel, table=True):
+    """Community forum thread (not tied to item/request messaging)."""
+
+    __tablename__ = "forum_thread"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    author_id: UUID = Field(foreign_key="user.id", index=True)
+    category: str = Field(max_length=64)
+    title: str = Field(max_length=200)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ForumPostTable(SQLModel, table=True):
+    """Post / reply within a forum thread."""
+
+    __tablename__ = "forum_post"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    thread_id: UUID = Field(foreign_key="forum_thread.id", index=True)
+    author_id: UUID = Field(foreign_key="user.id", index=True)
+    body: str = Field(max_length=8000)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class ProfilesTable(SQLModel, table=True):
     """Profiles table - Supabase auth profiles"""
     __tablename__ = "profiles"

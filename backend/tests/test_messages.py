@@ -1,6 +1,4 @@
-"""Messaging with optional Perspective moderation."""
-
-import perspective_client
+"""Messaging with optional regex / blocklist moderation."""
 
 
 def _approved_request_id(auth_client, donor_user, requester_user, sample_item):
@@ -17,7 +15,7 @@ def _approved_request_id(auth_client, donor_user, requester_user, sample_item):
     return rid
 
 
-def test_send_message_without_perspective_key(
+def test_send_message_with_no_moderation_rules(
     auth_client,
     donor_user,
     requester_user,
@@ -30,34 +28,44 @@ def test_send_message_without_perspective_key(
     assert res.json()["body"] == "Can we meet at 3pm?"
 
 
-def test_send_message_passes_moderation_when_scores_low(
+def test_send_message_rejected_when_blocklist_hit(
     monkeypatch,
     auth_client,
     donor_user,
     requester_user,
     sample_item,
 ):
-    monkeypatch.setenv("PERSPECTIVE_API_KEY", "test-key")
-    monkeypatch.setattr(perspective_client, "analyze_text", lambda text, timeout=None: 0.05)
-
+    monkeypatch.setenv("MESSAGE_BLOCKLIST", "badword")
     req_id = _approved_request_id(auth_client, donor_user, requester_user, sample_item)
     rq = auth_client(requester_user)
-    res = rq.post(f"/messages/{req_id}", json={"body": "Thanks for the coat!"})
-    assert res.status_code == 201
-
-
-def test_send_message_rejected_when_scores_high(
-    monkeypatch,
-    auth_client,
-    donor_user,
-    requester_user,
-    sample_item,
-):
-    monkeypatch.setenv("PERSPECTIVE_API_KEY", "test-key")
-    monkeypatch.setattr(perspective_client, "analyze_text", lambda text, timeout=None: 0.99)
-
-    req_id = _approved_request_id(auth_client, donor_user, requester_user, sample_item)
-    rq = auth_client(requester_user)
-    res = rq.post(f"/messages/{req_id}", json={"body": "hostile text"})
+    res = rq.post(f"/messages/{req_id}", json={"body": "This contains badword in the text"})
     assert res.status_code == 400
     assert "could not be sent" in res.json()["detail"].lower()
+
+
+def test_send_message_blocklist_whole_word_only(
+    monkeypatch,
+    auth_client,
+    donor_user,
+    requester_user,
+    sample_item,
+):
+    """'ass' must not match inside 'class'."""
+    monkeypatch.setenv("MESSAGE_BLOCKLIST", "ass")
+    req_id = _approved_request_id(auth_client, donor_user, requester_user, sample_item)
+    rq = auth_client(requester_user)
+    assert rq.post(f"/messages/{req_id}", json={"body": "Meet at class tomorrow"}).status_code == 201
+
+
+def test_send_message_rejected_when_regex_matches(
+    monkeypatch,
+    auth_client,
+    donor_user,
+    requester_user,
+    sample_item,
+):
+    monkeypatch.setenv("MESSAGE_MODERATION_REGEX", r"(?i)\bFORBIDDEN\b")
+    req_id = _approved_request_id(auth_client, donor_user, requester_user, sample_item)
+    rq = auth_client(requester_user)
+    res = rq.post(f"/messages/{req_id}", json={"body": "Please read FORBIDDEN here"})
+    assert res.status_code == 400

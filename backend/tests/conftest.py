@@ -20,7 +20,10 @@ from routers.auth import get_current_user  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
-def _reset_database():
+def _reset_database(monkeypatch):
+    """Stable DB and moderation env so local .env does not affect assertions."""
+    monkeypatch.delenv("MESSAGE_BLOCKLIST", raising=False)
+    monkeypatch.delenv("MESSAGE_MODERATION_REGEX", raising=False)
     SQLModel.metadata.drop_all(engine)
     SQLModel.metadata.create_all(engine)
     app.dependency_overrides.clear()

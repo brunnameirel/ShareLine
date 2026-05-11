@@ -5,6 +5,11 @@ Docs: https://developers.perspectiveapi.com/s/docs-get-started
 
 Set PERSPECTIVE_API_KEY to enable checks on POST /messages/....
 If unset, moderation is skipped (local dev / CI without a key).
+
+Sunset (vendor): new API access only through February 2026; the service is
+expected to stop after 2026. Treat this module as temporary: plan a replacement
+(e.g. another hosted moderation API, LLM-based classifiers with review, or
+policy rules) before relying on Perspective long term.
 """
 
 from __future__ import annotations

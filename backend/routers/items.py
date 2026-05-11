@@ -73,6 +73,8 @@ def list_items(
 
     results = []
     for item in items:
+        if item.donor_id == current_user.id:
+            continue
         if search and search.lower() not in item.name.lower() and search.lower() not in item.description.lower():
             continue
         donor = session.get(UserTable, item.donor_id)

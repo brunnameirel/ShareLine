@@ -20,7 +20,7 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements.txt
       - run: pip install -r requirements.txt
-      - run: pytest -q
+      - run: pytest -q --cov=. --cov-config=.coveragerc --cov-report=term --cov-report=xml
         env:
           DATABASE_URL: sqlite:///:memory:
           SUPABASE_URL: http://localhost
@@ -40,4 +40,5 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm test
+      - run: npm run test:coverage
       - run: npm run build

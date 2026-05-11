@@ -1,19 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
+import { readApiError } from '../utils/readApiError';
 
 const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
-
-async function readApiError(res) {
-  let msg = `HTTP ${res.status}`;
-  try {
-    const j = await res.json();
-    if (typeof j.detail === 'string') return j.detail;
-    if (Array.isArray(j.detail) && j.detail[0]?.msg) return j.detail.map((d) => d.msg).join(' ');
-  } catch {
-    /* ignore */
-  }
-  return msg;
-}
 
 /**
  * useMessages — loads history from FastAPI, then subscribes to

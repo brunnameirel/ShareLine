@@ -10,4 +10,5 @@ requests
 boto3
 
 pytest
+pytest-cov
 httpx>=0.26,<0.28

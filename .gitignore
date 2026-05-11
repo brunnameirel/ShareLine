@@ -9,3 +9,7 @@ node_modules/
 shareline.db
 frontend/dist/
 dist/
+backend/coverage.xml
+backend/.coverage
+backend/htmlcov/
+frontend/coverage/

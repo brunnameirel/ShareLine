@@ -1,7 +1,19 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 
-const API = import.meta.env.VITE_API_URL;
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
+async function readApiError(res) {
+  let msg = `HTTP ${res.status}`;
+  try {
+    const j = await res.json();
+    if (typeof j.detail === 'string') return j.detail;
+    if (Array.isArray(j.detail) && j.detail[0]?.msg) return j.detail.map((d) => d.msg).join(' ');
+  } catch {
+    /* ignore */
+  }
+  return msg;
+}
 
 /**
  * useMessages — loads history from FastAPI, then subscribes to
@@ -84,9 +96,10 @@ export function useMessages(requestId, authToken) {
   // ------------------------------------------------------------------
   const sendMessage = useCallback(
     async (body) => {
-      if (!body.trim() || !requestId || !authToken) return;
+      if (!body.trim() || !requestId || !authToken) return false;
 
       setSending(true);
+      setError(null);
       try {
         const res = await fetch(`${API}/messages/${requestId}`, {
           method: 'POST',
@@ -96,15 +109,17 @@ export function useMessages(requestId, authToken) {
           },
           body: JSON.stringify({ body: body.trim() }),
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) throw new Error(await readApiError(res));
         const saved = await res.json();
         // Add locally — realtime dedup will ignore it when it arrives
         setMessages((prev) => {
           if (prev.some((m) => m.id === saved.id)) return prev;
           return [...prev, saved];
         });
+        return true;
       } catch (err) {
         setError(err.message);
+        return false;
       } finally {
         setSending(false);
       }
@@ -112,5 +127,7 @@ export function useMessages(requestId, authToken) {
     [requestId, authToken]
   );
 
-  return { messages, loading, error, sending, sendMessage };
+  const clearSendError = useCallback(() => setError(null), []);
+
+  return { messages, loading, error, sending, sendMessage, clearSendError };
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { Box, Typography, Avatar, IconButton, TextField, CircularProgress, Skeleton } from '@mui/material';
+import { Box, Typography, Avatar, IconButton, TextField, CircularProgress, Skeleton, Alert } from '@mui/material';
 import {
   Send,
   ArrowBack,
@@ -12,7 +12,7 @@ import { useMessages } from '../hooks/useMessages';
 
 // Helpers
 
-const API = import.meta.env.VITE_API_URL;
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 function initials(name = '') {
   return name
@@ -329,7 +329,7 @@ export default function MessagesPage() {
 
   const activeThread = threads.find((t) => t.requestId === activeRequestId);
 
-  const { messages, loading: msgsLoading, sending, sendMessage } = useMessages(
+  const { messages, loading: msgsLoading, sending, sendMessage, error: sendError, clearSendError } = useMessages(
     activeRequestId,
     session?.access_token
   );
@@ -354,7 +354,8 @@ export default function MessagesPage() {
     if (!input.trim()) return;
     const text = input;
     setInput('');
-    await sendMessage(text);
+    const ok = await sendMessage(text);
+    if (!ok) setInput(text);
     inputRef.current?.focus();
   };
 
@@ -598,12 +599,15 @@ export default function MessagesPage() {
                   py: 1.5,
                   borderTop: `1px solid ${brand.tan}`,
                   backgroundColor: '#fff',
-                  display: 'flex',
-                  alignItems: 'flex-end',
-                  gap: 1,
                   flexShrink: 0,
                 }}
               >
+                {sendError && (
+                  <Alert severity="warning" sx={{ mb: 1.5, borderRadius: 2 }} onClose={clearSendError}>
+                    {sendError}
+                  </Alert>
+                )}
+                <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1 }}>
                 <TextField
                   inputRef={inputRef}
                   fullWidth
@@ -652,6 +656,7 @@ export default function MessagesPage() {
                     <Send sx={{ fontSize: 18 }} />
                   )}
                 </IconButton>
+                </Box>
               </Box>
             </>
           )}

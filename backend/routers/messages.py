@@ -17,6 +17,7 @@ from sqlmodel import Session, select
 
 from db import SessionDep
 from models import MessageTable, NotificationTable, RequestTable, ItemTable, UserTable
+from perspective_client import assert_text_allowed_for_message
 from routers.auth import get_current_user
 
 router = APIRouter(prefix="/messages", tags=["messages"])
@@ -130,6 +131,8 @@ def send_message(
     """
     req = _get_approved_request(request_id, current_user, session)
     item = session.get(ItemTable, req.item_id)
+
+    assert_text_allowed_for_message(payload.body)
 
     msg = MessageTable(
         request_id=request_id,

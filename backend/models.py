@@ -13,13 +13,15 @@ from uuid import UUID, uuid4
 class UserTable(SQLModel, table=True):
     """User table - stores user profiles"""
     __tablename__ = "user"
-    
+
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     supabase_id: str = Field(unique=True, index=True)
     email: str = Field(unique=True, index=True)
     name: str
     is_donor: bool = False
     is_requester: bool = False
+    report_count: int = 0
+    is_banned: bool = False
 
 
 class ItemTable(SQLModel, table=True):
@@ -102,10 +104,21 @@ class ForumPostTable(SQLModel, table=True):
 class ProfilesTable(SQLModel, table=True):
     """Profiles table - Supabase auth profiles"""
     __tablename__ = "profiles"
-    
+
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     created_at: Optional[datetime] = None
     email: Optional[str] = None
     name: Optional[str] = None
     phone_number: Optional[str] = None
     role: Optional[str] = None
+
+
+class UserReportTable(SQLModel, table=True):
+    """Tracks user reports to enforce ban threshold."""
+    __tablename__ = "user_report"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    reporter_id: UUID = Field(foreign_key="user.id", index=True)
+    reported_id: UUID = Field(foreign_key="user.id", index=True)
+    request_id: UUID = Field(foreign_key="request.id", index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)

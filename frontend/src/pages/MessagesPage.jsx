@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { Box, Typography, Avatar, IconButton, TextField, CircularProgress, Skeleton, Alert } from '@mui/material';
 import {
-  Send,
-  ArrowBack,
-  VolunteerActivism,
-  ChatBubbleOutlined,
+  Box, Typography, Avatar, IconButton, TextField, CircularProgress,
+  Skeleton, Alert, Button, Dialog, DialogTitle, DialogContent,
+  DialogContentText, DialogActions, Tooltip, Snackbar,
+} from '@mui/material';
+import {
+  Send, ArrowBack, VolunteerActivism, ChatBubbleOutlined,
+  CheckCircleOutline, Flag,
 } from '@mui/icons-material';
 import { supabase } from '../supabaseClient';
 import { useMessages } from '../hooks/useMessages';
@@ -274,6 +276,10 @@ export default function MessagesPage() {
   const [threadsLoading, setThreadsLoading] = useState(true);
   const [activeRequestId, setActiveRequestId] = useState(paramRequestId || null);
   const [input, setInput] = useState('');
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(null); // 'complete' | 'report' | null
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -363,6 +369,61 @@ export default function MessagesPage() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const handleComplete = async () => {
+    setCompleteDialogOpen(false);
+    setActionLoading('complete');
+    try {
+      const res = await fetch(`${API}/requests/${activeRequestId}/complete`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setSnackbar({ open: true, message: data.detail || 'Failed to complete transaction', severity: 'error' });
+        return;
+      }
+      setThreads((prev) => prev.filter((t) => t.requestId !== activeRequestId));
+      setActiveRequestId(null);
+      setSnackbar({ open: true, message: 'Transaction completed! The chat has been closed.', severity: 'success' });
+    } catch {
+      setSnackbar({ open: true, message: 'Failed to complete transaction', severity: 'error' });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleReport = async () => {
+    setReportDialogOpen(false);
+    setActionLoading('report');
+    try {
+      const res = await fetch(`${API}/reports`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ request_id: activeRequestId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setSnackbar({ open: true, message: data.detail || 'Failed to report user', severity: 'error' });
+        return;
+      }
+      const data = await res.json();
+      setSnackbar({
+        open: true,
+        message: data.is_banned
+          ? 'User reported and banned due to multiple reports.'
+          : 'User reported successfully. Thank you for keeping ShareLine safe.',
+        severity: 'success',
+      });
+    } catch {
+      setSnackbar({ open: true, message: 'Failed to report user', severity: 'error' });
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -510,13 +571,49 @@ export default function MessagesPage() {
                 >
                   {initials(activeThread?.otherUserName || 'U')}
                 </Avatar>
-                <Box>
+                <Box sx={{ flex: 1 }}>
                   <Typography sx={{ fontWeight: 700, fontSize: 15, color: '#2c1a0e' }}>
                     {activeThread?.otherUserName || 'Conversation'}
                   </Typography>
                   <Typography sx={{ fontSize: 12, color: brand.muted }}>
                     {activeThread?.itemName}
                   </Typography>
+                </Box>
+
+                {/* Action buttons */}
+                <Box sx={{ display: 'flex', gap: 0.5, ml: 'auto' }}>
+                  <Tooltip title="Transaction Complete — close this chat">
+                    <span>
+                      <IconButton
+                        onClick={() => setCompleteDialogOpen(true)}
+                        disabled={actionLoading === 'complete'}
+                        sx={{
+                          color: '#2e7d32',
+                          '&:hover': { background: 'rgba(46,125,50,0.08)' },
+                        }}
+                      >
+                        {actionLoading === 'complete'
+                          ? <CircularProgress size={20} sx={{ color: '#2e7d32' }} />
+                          : <CheckCircleOutline />}
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                  <Tooltip title="Report this user">
+                    <span>
+                      <IconButton
+                        onClick={() => setReportDialogOpen(true)}
+                        disabled={actionLoading === 'report'}
+                        sx={{
+                          color: brand.red,
+                          '&:hover': { background: 'rgba(181,51,36,0.08)' },
+                        }}
+                      >
+                        {actionLoading === 'report'
+                          ? <CircularProgress size={20} sx={{ color: brand.red }} />
+                          : <Flag />}
+                      </IconButton>
+                    </span>
+                  </Tooltip>
                 </Box>
               </Box>
 
@@ -662,6 +759,68 @@ export default function MessagesPage() {
           )}
         </Box>
       </Box>
+
+      {/* Complete Transaction Dialog */}
+      <Dialog open={completeDialogOpen} onClose={() => setCompleteDialogOpen(false)} PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ fontWeight: 700, color: '#2c1a0e' }}>Complete Transaction?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Mark this exchange as done. The chat will be deleted and the item will be recorded as donated.
+            This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button onClick={() => setCompleteDialogOpen(false)} sx={{ color: brand.muted }}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleComplete}
+            variant="contained"
+            sx={{ background: '#2e7d32', '&:hover': { background: '#1b5e20' }, borderRadius: 2 }}
+          >
+            Yes, Complete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Report User Dialog */}
+      <Dialog open={reportDialogOpen} onClose={() => setReportDialogOpen(false)} PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ fontWeight: 700, color: brand.red }}>Report User?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to report <strong>{activeThread?.otherUserName}</strong>?
+            Users reported 3 or more times will be automatically banned.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button onClick={() => setReportDialogOpen(false)} sx={{ color: brand.muted }}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleReport}
+            variant="contained"
+            sx={{ background: brand.red, '&:hover': { background: brand.redDark }, borderRadius: 2 }}
+          >
+            Report
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Feedback Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={5000}
+        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          severity={snackbar.severity}
+          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+          sx={{ borderRadius: 2 }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

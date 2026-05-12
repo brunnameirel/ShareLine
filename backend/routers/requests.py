@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 from sqlmodel import select
 
 from db import SessionDep
-from models import ItemTable, RequestTable, UserTable
+from models import ItemTable, MessageTable, RequestTable, UserTable
 from routers.auth import get_current_user
 
 router = APIRouter(prefix="/requests", tags=["requests"])
@@ -199,3 +199,39 @@ def list_requests(
         )
 
     return results
+
+
+@router.post("/{request_id}/complete", response_model=RequestSimpleRead)
+def complete_request(
+    request_id: UUID,
+    session: SessionDep,
+    current_user: UserTable = Depends(get_current_user),
+):
+    """Mark a request as Completed, delete its messages, and mark the item as Donated."""
+    req = session.get(RequestTable, request_id)
+    if not req:
+        raise HTTPException(404, "Request not found")
+    if req.status != "Approved":
+        raise HTTPException(400, f"Only Approved requests can be completed (current: {req.status})")
+
+    item = session.get(ItemTable, req.item_id)
+    if not item:
+        raise HTTPException(404, "Item not found")
+    if current_user.id not in (req.requester_id, item.donor_id):
+        raise HTTPException(403, "You are not a party to this request")
+
+    req.status = "Completed"
+    session.add(req)
+
+    item.status = "Donated"
+    session.add(item)
+
+    messages = session.exec(
+        select(MessageTable).where(MessageTable.request_id == request_id)
+    ).all()
+    for msg in messages:
+        session.delete(msg)
+
+    session.commit()
+    session.refresh(req)
+    return req

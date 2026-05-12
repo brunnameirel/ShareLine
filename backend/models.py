@@ -46,7 +46,7 @@ class RequestTable(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     requester_id: UUID = Field(foreign_key="user.id", index=True)
     item_id: UUID = Field(foreign_key="item.id", index=True)
-    requested_quantity: int
+    requested_quantity: int 
     status: str = "Pending"  # Pending | Approved | Rejected | Completed
     created_at: datetime = Field(default_factory=datetime.utcnow)
 

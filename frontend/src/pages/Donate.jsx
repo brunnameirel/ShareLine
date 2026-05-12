@@ -120,6 +120,8 @@ export default function Donate() {
     setError('');
     if (!form.category) { setError('Please select a category.'); return; }
     if (!form.condition) { setError('Please select a condition.'); return; }
+    if (form.quantity < 1) { setError('Quantity must be at least 1.'); return; }
+    if (form.quantity > 99) { setError('Quantity must be at most 99.'); return; }
 
     setLoading(true);
     try {

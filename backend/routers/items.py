@@ -97,6 +97,9 @@ def create_item(
     if payload.condition not in VALID_CONDITIONS:
         raise HTTPException(400, f"Invalid condition. Choose from: {', '.join(VALID_CONDITIONS)}")
 
+    if payload.quantity < 1 or payload.quantity > 99:
+        raise HTTPException(400, "Quantity must be between 1 and 99.")
+    
     item = ItemTable(
         donor_id=current_user.id,
         name=payload.name,
